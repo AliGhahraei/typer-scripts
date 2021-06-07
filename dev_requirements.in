@@ -1,0 +1,5 @@
+pytest
+mypy
+typer[all]
+typer-cli
+-e .
