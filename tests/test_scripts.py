@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
-from typing import List, Union, Iterable
+from typing import List, Union, Iterable, Tuple, Any
 from unittest.mock import Mock, call, patch
 
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
@@ -191,30 +191,16 @@ class TestFetchRepos:
         assert_repos_fetched(repos, run)
 
     @staticmethod
-    def test_fetch_exits_without_repos(run: Mock) -> None:
+    @mark.parametrize('args', [(), (None,), (list())])
+    def test_fetch_exits_without_repos(args: Tuple[Any, ...], run: Mock) \
+            -> None:
         message = ('Either the `repos` argument or the `TYPER_SCRIPTS_REPO` '
                    'env variable must be provided')
         with raises(SystemExit, match=message):
-            fetch_repos()
+            fetch_repos(*args)
 
 
 class TestCheckReposClean:
-    @staticmethod
-    @mark.usefixtures('run')
-    def test_check_says_checking_repos_with_no_repos(
-        capsys: CaptureFixture[str],
-    ) -> None:
-        check_repos_clean([])
-        assert_stdout('Checking git repos', capsys.readouterr().out)
-
-    @staticmethod
-    def test_check_says_no_repos_without_running_commands_with_no_repos(
-        run: Mock, capsys: CaptureFixture[str],
-    ) -> None:
-        check_repos_clean([])
-        assert_stdout("No repos to check", capsys.readouterr().out)
-        run.assert_not_called()
-
     @staticmethod
     def test_check_says_clean_on_clean_repos(
         run: Mock, repos: List[Path], capsys: CaptureFixture[str],

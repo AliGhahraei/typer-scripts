@@ -47,10 +47,8 @@ def fetch_repos(repos: Optional[List[Path]] = None) \
 def check_repos_clean(repos: Optional[List[Path]] = None) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
-    if not sanitized_repos:
-        info('No repos to check')
-    elif dirty_repos := [repo for repo in sanitized_repos
-                         if is_tree_dirty(repo)]:
+    if dirty_repos := [repo for repo in sanitized_repos
+                       if is_tree_dirty(repo)]:
         for repo in dirty_repos:
             warning(f"Repository in {repo} was not clean")
     else:
@@ -58,7 +56,7 @@ def check_repos_clean(repos: Optional[List[Path]] = None) -> None:
 
 
 def sanitize_repos(repos_param: Optional[List[Path]]) -> List[Path]:
-    user_repos: List[Path] = (repos_param if repos_param is not None
+    user_repos: List[Path] = (repos_param if repos_param
                               else _read_repos_env())
     return [path.expanduser() for path in user_repos]
 
