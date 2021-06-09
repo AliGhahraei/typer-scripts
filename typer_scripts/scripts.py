@@ -5,7 +5,7 @@ from subprocess import CalledProcessError, CompletedProcess, run
 from sys import exit
 from typing import Union, List, Optional
 
-from typer import Typer
+from typer import Typer, Context
 
 from typer_scripts.core import info, task_title, warning
 
@@ -105,3 +105,16 @@ def _has_unpushed_commits(*command_prefix: Union[str, Path]) \
 
 def _decode(command_output: CompletedProcess[bytes]) -> str:
     return command_output.stdout.decode('utf-8')
+
+
+@app.callback(
+    context_settings={
+        'obj': [fetch_yadm, check_yadm_clean, fetch_repos, check_repos_clean],
+    },
+    invoke_without_command=True,
+)
+def main(ctx: Context) -> None:
+    """This is a test"""
+    if ctx.invoked_subcommand is None:
+        for command in ctx.obj:
+            command()

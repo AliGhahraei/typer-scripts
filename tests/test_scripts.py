@@ -5,9 +5,10 @@ from typing import List, Union, Iterable, Tuple, Any
 from unittest.mock import Mock, call, patch
 
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
+from typer.testing import CliRunner
 
 from typer_scripts.scripts import (check_repos_clean, check_yadm_clean,
-                                   fetch_repos, fetch_yadm)
+                                   fetch_repos, fetch_yadm, app)
 
 DARWIN = 'Darwin'
 LINUX = 'Linux'
@@ -51,6 +52,11 @@ def set_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
     monkeypatch.setenv('TYPER_SCRIPTS_REPOS',
                        ' '.join([str(repo) for repo in repos]))
     yield
+
+
+@fixture
+def cli_runner() -> CliRunner:
+    return CliRunner()
 
 
 def assert_stdout(message: str, out: str):
@@ -275,3 +281,15 @@ class TestCheckReposClean:
         check_repos_clean()
 
         assert_repos_not_clean(repos, capsys.readouterr().out)
+
+
+class TestApp:
+    @staticmethod
+    def test_main_invokes_object_subcommands(cli_runner: CliRunner) -> None:
+        subcommand_1, subcommand_2 = Mock(), Mock()
+
+        cli_runner.invoke(app, obj=[subcommand_1, subcommand_2],
+                          catch_exceptions=False)
+
+        subcommand_1.assert_called_once_with()
+        subcommand_2.assert_called_once_with()
