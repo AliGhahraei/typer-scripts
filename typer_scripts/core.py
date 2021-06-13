@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
+import subprocess
+from enum import Enum, auto
 from functools import wraps
-from typing import Any, Callable
+from pathlib import Path
+from subprocess import CompletedProcess
+from typing import Any, Callable, List, Union
 
 from typer import style
+
+
+class RunMode(Enum):
+    DRY_RUN = auto()
+    DEFAULT = auto()
 
 
 def task_title(message: str) \
@@ -33,3 +42,12 @@ def warning(message: str) -> None:
 
 def _colorize(message: str, foreground: str, **kwargs: Any) -> str:
     return style(message, foreground, **kwargs)
+
+
+def run(args: List[Union[str, Path]], mode: RunMode,
+        capture_output: bool = False) -> CompletedProcess[bytes]:
+    if mode is RunMode.DRY_RUN:
+        print(args)
+        return CompletedProcess(args, 0, str(tuple(args)).encode())
+    else:
+        return subprocess.run(args, capture_output=capture_output)

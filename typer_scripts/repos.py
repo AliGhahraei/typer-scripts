@@ -1,32 +1,43 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
-from subprocess import CalledProcessError, CompletedProcess, run
+from subprocess import CalledProcessError, CompletedProcess
 from sys import exit
 from typing import Union, List, Optional
 
-from typer import Typer, Context
+from domestobot import get_commands_callbacks, dry_run_option
+from typer import Context, Option
 
-from typer_scripts.core import info, task_title, warning
+from typer_scripts.core import info, task_title, warning, run, RunMode
+from typer_scripts.typer_tools import Typer
 
 _SUBSTRING_ALWAYS_PRESENT_IN_NON_EMPTY_OUTPUT = '->'
 
 app = Typer()
+run_mode_option = Option(RunMode.DEFAULT, hidden=True)
+
+
+@app.callback(invoke_without_command=True)
+def repos(ctx: Context, dry_run: bool = dry_run_option) -> None:
+    """Check if your repositories are up-to-date and clean"""
+    if ctx.invoked_subcommand is None:
+        for command in get_commands_callbacks(app).values():
+            command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
 
 
 @app.command()
 @task_title('Fetching yadm')
-def fetch_yadm() -> None:
+def fetch_yadm(mode: RunMode = run_mode_option) -> None:
     """Fetch new changes for yadm."""
-    run(['yadm', 'fetch'])
+    run(['yadm', 'fetch'], mode)
 
 
 @app.command()
 @task_title('Checking yadm')
-def check_yadm_clean() -> None:
+def check_yadm_clean(mode: RunMode = run_mode_option) -> None:
     """Check if yadm has unpublished work."""
-    if (_has_unsaved_changes('yadm')
-            or _has_unpushed_commits('yadm')):
+    if (_has_unsaved_changes('yadm', mode=mode)
+            or _has_unpushed_commits('yadm', mode=mode)):
         warning('Yadm was not clean')
     else:
         info('Yadm was clean!')
@@ -34,21 +45,23 @@ def check_yadm_clean() -> None:
 
 @app.command()
 @task_title('Fetching repos')
-def fetch_repos(repos: Optional[List[Path]] = None) \
+def fetch_repos(repos: Optional[List[Path]] = None,
+                mode: RunMode = run_mode_option) \
         -> None:
     """Fetch new changes for repos."""
     sanitized_repos = sanitize_repos(repos)
     for repo in sanitized_repos:
-        run(['git', '-C', repo, 'fetch'])
+        run(['git', '-C', repo, 'fetch'], mode)
 
 
 @app.command()
 @task_title('Checking git repos')
-def check_repos_clean(repos: Optional[List[Path]] = None) -> None:
+def check_repos_clean(repos: Optional[List[Path]] = None,
+                      mode: RunMode = run_mode_option) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
     if dirty_repos := [repo for repo in sanitized_repos
-                       if is_tree_dirty(repo)]:
+                       if is_tree_dirty(repo, mode)]:
         for repo in dirty_repos:
             warning(f"Repository in {repo} was not clean")
     else:
@@ -71,10 +84,10 @@ def _read_repos_env() -> List[Path]:
     return [Path(path) for path in env_repos.split(' ')]
 
 
-def is_tree_dirty(dir_: Path) -> bool:
+def is_tree_dirty(dir_: Path, mode: RunMode) -> bool:
     try:
-        is_dirty = (_has_unsaved_changes('git', '-C', dir_)
-                    or _has_unpushed_commits('git', '-C', dir_))
+        is_dirty = (_has_unsaved_changes('git', '-C', dir_, mode=mode)
+                    or _has_unpushed_commits('git', '-C', dir_, mode=mode))
     except CalledProcessError as e:
         if e.returncode == 128:
             exit(f'Not a git repository: {dir_}')
@@ -83,20 +96,22 @@ def is_tree_dirty(dir_: Path) -> bool:
     return is_dirty
 
 
-def _has_unsaved_changes(*command_prefix: Union[str, Path]) \
+def _has_unsaved_changes(*command_prefix: Union[str, Path], mode: RunMode) \
         -> bool:
     unsaved_changes = run(
         [*command_prefix, 'status', '--ignore-submodules', '--porcelain'],
+        RunMode.DEFAULT,
         capture_output=True,
     )
     return bool(_decode(unsaved_changes))
 
 
-def _has_unpushed_commits(*command_prefix: Union[str, Path]) \
+def _has_unpushed_commits(*command_prefix: Union[str, Path], mode: RunMode) \
         -> bool:
     unpushed_commits = run(
         [*command_prefix, 'log', '--branches', '--not', '--remotes',
          '--oneline'],
+        RunMode.DEFAULT,
         capture_output=True,
     )
     return (_SUBSTRING_ALWAYS_PRESENT_IN_NON_EMPTY_OUTPUT
@@ -105,16 +120,3 @@ def _has_unpushed_commits(*command_prefix: Union[str, Path]) \
 
 def _decode(command_output: CompletedProcess[bytes]) -> str:
     return command_output.stdout.decode('utf-8')
-
-
-@app.callback(
-    context_settings={
-        'obj': [fetch_yadm, check_yadm_clean, fetch_repos, check_repos_clean],
-    },
-    invoke_without_command=True,
-)
-def main(ctx: Context) -> None:
-    """This is a test"""
-    if ctx.invoked_subcommand is None:
-        for command in ctx.obj:
-            command()

@@ -7,8 +7,9 @@ from unittest.mock import Mock, call, patch
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
 from typer.testing import CliRunner
 
-from typer_scripts.scripts import (check_repos_clean, check_yadm_clean,
-                                   fetch_repos, fetch_yadm, app)
+from typer_scripts.core import RunMode
+from typer_scripts.repos import (check_repos_clean, check_yadm_clean,
+                                 fetch_repos, fetch_yadm, app)
 
 DARWIN = 'Darwin'
 LINUX = 'Linux'
@@ -17,7 +18,7 @@ UNKNOWN_OS = 'Unknown OS'
 
 @fixture
 def run():
-    with patch('typer_scripts.scripts.run') as run_mock:
+    with patch('typer_scripts.repos.run') as run_mock:
         yield run_mock
 
 
@@ -79,7 +80,8 @@ def assert_clean_message_shown(out: str) -> None:
 
 def assert_repos_fetched(repos: Iterable[Path], run: Mock) -> None:
     run.assert_has_calls([
-        call(['git', '-C', repo.expanduser(), 'fetch']) for repo in repos
+        call(['git', '-C', repo.expanduser(), 'fetch'], RunMode.DEFAULT)
+        for repo in repos
     ])
 
 
@@ -113,7 +115,7 @@ class TestFetchYadm:
     @staticmethod
     def test_fetch_runs_fetch(run: Mock) -> None:
         fetch_yadm()
-        run.assert_called_once_with(['yadm', 'fetch'])
+        run.assert_called_once_with(['yadm', 'fetch'], RunMode.DEFAULT)
 
 
 class TestCheckYadmClean:
@@ -134,6 +136,7 @@ class TestCheckYadmClean:
         check_yadm_clean()
         run.assert_called_once_with(
             ['yadm', *get_command_prefix_for_unsaved_changes()],
+            RunMode.DEFAULT,
             capture_output=True,
         )
         assert_stdout('Yadm was not clean', capsys.readouterr().out)
@@ -148,9 +151,9 @@ class TestCheckYadmClean:
         check_yadm_clean()
         run.assert_has_calls([
             call(['yadm', *get_command_prefix_for_unsaved_changes()],
-                 capture_output=True),
+                 RunMode.DEFAULT, capture_output=True),
             call(['yadm', *get_command_prefix_for_unpushed_commits()],
-                 capture_output=True),
+                 RunMode.DEFAULT, capture_output=True),
         ])
         assert_stdout('Yadm was not clean', capsys.readouterr().out)
 
@@ -163,9 +166,9 @@ class TestCheckYadmClean:
         check_yadm_clean()
         run.assert_has_calls([
             call(['yadm', *get_command_prefix_for_unsaved_changes()],
-                 capture_output=True),
+                 RunMode.DEFAULT, capture_output=True),
             call(['yadm', *get_command_prefix_for_unpushed_commits()],
-                 capture_output=True),
+                 RunMode.DEFAULT, capture_output=True),
         ])
         assert_stdout('Yadm was clean!', capsys.readouterr().out)
 
@@ -216,8 +219,10 @@ class TestCheckReposClean:
         check_repos_clean(repos)
         for repo in repos:
             run.assert_has_calls([
-                call(get_unsaved_changes_args(repo), capture_output=True),
-                call(get_unpushed_commits_args(repo), capture_output=True),
+                call(get_unsaved_changes_args(repo), RunMode.DEFAULT,
+                     capture_output=True),
+                call(get_unpushed_commits_args(repo), RunMode.DEFAULT,
+                     capture_output=True),
             ])
         assert_clean_message_shown(capsys.readouterr().out)
 
@@ -229,7 +234,8 @@ class TestCheckReposClean:
         run.side_effect = [unsaved_changes_output]
         check_repos_clean([repo1])
         run.assert_called_once_with(
-            get_unsaved_changes_args(repo1), capture_output=True,
+            get_unsaved_changes_args(repo1), RunMode.DEFAULT,
+            capture_output=True,
         )
         assert_repo_not_clean(repo1, capsys.readouterr().out)
 
@@ -242,8 +248,10 @@ class TestCheckReposClean:
         run.side_effect = [clean_output, unpushed_commits_output]
         check_repos_clean([repo1])
         run.assert_has_calls([
-            call(get_unsaved_changes_args(repo1), capture_output=True),
-            call(get_unpushed_commits_args(repo1), capture_output=True),
+            call(get_unsaved_changes_args(repo1), RunMode.DEFAULT,
+                 capture_output=True),
+            call(get_unpushed_commits_args(repo1), RunMode.DEFAULT,
+                 capture_output=True),
         ])
         assert_repo_not_clean(repo1, capsys.readouterr().out)
 
@@ -256,7 +264,8 @@ class TestCheckReposClean:
                     match=f'Not a git repository: {repo1.expanduser()}'):
             check_repos_clean([repo1])
         run.assert_called_once_with(
-            get_unsaved_changes_args(repo1), capture_output=True,
+            get_unsaved_changes_args(repo1), RunMode.DEFAULT,
+            capture_output=True,
         )
 
     @staticmethod
@@ -267,7 +276,8 @@ class TestCheckReposClean:
         with raises(CalledProcessError, match=message):
             check_repos_clean([repo1])
         run.assert_called_once_with(
-            get_unsaved_changes_args(repo1), capture_output=True
+            get_unsaved_changes_args(repo1), RunMode.DEFAULT,
+            capture_output=True
         )
 
     @staticmethod
@@ -285,11 +295,7 @@ class TestCheckReposClean:
 
 class TestApp:
     @staticmethod
+    @mark.usefixtures('set_repos_env')
     def test_main_invokes_object_subcommands(cli_runner: CliRunner) -> None:
-        subcommand_1, subcommand_2 = Mock(), Mock()
-
-        cli_runner.invoke(app, obj=[subcommand_1, subcommand_2],
-                          catch_exceptions=False)
-
-        subcommand_1.assert_called_once_with()
-        subcommand_2.assert_called_once_with()
+        result = cli_runner.invoke(app, '--dry-run', catch_exceptions=False)
+        assert result.exit_code == 0
