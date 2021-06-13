@@ -47,7 +47,8 @@ def _colorize(message: str, foreground: str, **kwargs: Any) -> str:
 def run(args: List[Union[str, Path]], mode: RunMode,
         capture_output: bool = False) -> CompletedProcess[bytes]:
     if mode is RunMode.DRY_RUN:
-        print(args)
-        return CompletedProcess(args, 0, str(tuple(args)).encode())
+        dry_run_args = tuple(args)
+        print(dry_run_args)
+        return CompletedProcess(dry_run_args, 0, str(dry_run_args).encode())
     else:
         return subprocess.run(args, capture_output=capture_output)

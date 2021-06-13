@@ -20,7 +20,14 @@ class TestRun:
 
     @staticmethod
     def test_run_prints_args_with_dry_run(capfd: CaptureFixture[str]):
-        result = run(['echo', 'value'], RunMode.DRY_RUN,
-                     capture_output=True)
+        run(['echo', 'value'], RunMode.DRY_RUN)
 
-        assert "('echo', 'value')" in result.stdout.decode()
+        assert "('echo', 'value')" in capfd.readouterr().out
+
+    @staticmethod
+    def test_run_returns_expected_completed_process_with_dry_run():
+        result = run(['echo', 'value'], RunMode.DRY_RUN)
+
+        assert result.args == ('echo', 'value')
+        assert result.returncode == 0
+        assert result.stdout == b"('echo', 'value')"
