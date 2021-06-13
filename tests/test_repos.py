@@ -110,11 +110,13 @@ class TestFetchYadm:
             capsys: CaptureFixture[str]
     ) -> None:
         fetch_yadm()
+
         assert_stdout('Fetching yadm', capsys.readouterr().out)
 
     @staticmethod
     def test_fetch_runs_fetch(run: Mock) -> None:
         fetch_yadm()
+
         run.assert_called_once_with(['yadm', 'fetch'], RunMode.DEFAULT)
 
 
@@ -125,6 +127,7 @@ class TestCheckYadmClean:
             capsys: CaptureFixture[str]
     ) -> None:
         check_yadm_clean()
+
         assert_stdout('Checking yadm', capsys.readouterr().out)
 
     @staticmethod
@@ -133,7 +136,9 @@ class TestCheckYadmClean:
             unsaved_changes_output: CompletedProcess[bytes]
     ) -> None:
         run.side_effect = [unsaved_changes_output]
+
         check_yadm_clean()
+
         run.assert_called_once_with(
             ['yadm', *get_command_prefix_for_unsaved_changes()],
             RunMode.DEFAULT,
@@ -148,7 +153,9 @@ class TestCheckYadmClean:
         unpushed_commits_output: CompletedProcess[bytes]
     ) -> None:
         run.side_effect = [clean_output, unpushed_commits_output]
+
         check_yadm_clean()
+
         run.assert_has_calls([
             call(['yadm', *get_command_prefix_for_unsaved_changes()],
                  RunMode.DEFAULT, capture_output=True),
@@ -163,7 +170,9 @@ class TestCheckYadmClean:
         clean_output: CompletedProcess[bytes],
     ) -> None:
         run.side_effect = [clean_output] * 2
+
         check_yadm_clean()
+
         run.assert_has_calls([
             call(['yadm', *get_command_prefix_for_unsaved_changes()],
                  RunMode.DEFAULT, capture_output=True),
@@ -205,6 +214,7 @@ class TestFetchRepos:
             -> None:
         message = ('Either the `repos` argument or the `TYPER_SCRIPTS_REPO` '
                    'env variable must be provided')
+
         with raises(SystemExit, match=message):
             fetch_repos(*args)
 
@@ -216,7 +226,9 @@ class TestCheckReposClean:
         clean_output: CompletedProcess[bytes]
     ) -> None:
         run.side_effect = [clean_output for _ in range(len(repos) * 2)]
+
         check_repos_clean(repos)
+
         for repo in repos:
             run.assert_has_calls([
                 call(get_unsaved_changes_args(repo), RunMode.DEFAULT,
@@ -232,7 +244,9 @@ class TestCheckReposClean:
         unsaved_changes_output: CompletedProcess[bytes]
     ) -> None:
         run.side_effect = [unsaved_changes_output]
+
         check_repos_clean([repo1])
+
         run.assert_called_once_with(
             get_unsaved_changes_args(repo1), RunMode.DEFAULT,
             capture_output=True,
@@ -246,7 +260,9 @@ class TestCheckReposClean:
         unpushed_commits_output: CompletedProcess[bytes],
     ) -> None:
         run.side_effect = [clean_output, unpushed_commits_output]
+
         check_repos_clean([repo1])
+
         run.assert_has_calls([
             call(get_unsaved_changes_args(repo1), RunMode.DEFAULT,
                  capture_output=True),
@@ -260,9 +276,11 @@ class TestCheckReposClean:
         run: Mock, repo1: Path,
     ) -> None:
         run.side_effect = CalledProcessError(128, 'command')
+
         with raises(SystemExit,
                     match=f'Not a git repository: {repo1.expanduser()}'):
             check_repos_clean([repo1])
+
         run.assert_called_once_with(
             get_unsaved_changes_args(repo1), RunMode.DEFAULT,
             capture_output=True,
@@ -273,8 +291,10 @@ class TestCheckReposClean:
         exception = CalledProcessError(1, 'command')
         run.side_effect = exception
         message = "Command 'command' returned non-zero exit status 1."
+
         with raises(CalledProcessError, match=message):
             check_repos_clean([repo1])
+
         run.assert_called_once_with(
             get_unsaved_changes_args(repo1), RunMode.DEFAULT,
             capture_output=True
@@ -298,4 +318,5 @@ class TestApp:
     @mark.usefixtures('set_repos_env')
     def test_main_invokes_object_subcommands(cli_runner: CliRunner) -> None:
         result = cli_runner.invoke(app, '--dry-run', catch_exceptions=False)
+
         assert result.exit_code == 0
