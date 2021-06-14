@@ -56,6 +56,12 @@ def set_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
 
 
 @fixture
+def unset_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
+    monkeypatch.delenv('TYPER_SCRIPTS_REPOS')
+    yield
+
+
+@fixture
 def cli_runner() -> CliRunner:
     return CliRunner()
 
@@ -209,6 +215,7 @@ class TestFetchRepos:
         assert_repos_fetched(repos, run)
 
     @staticmethod
+    @mark.usefixtures('unset_repos_env')
     @mark.parametrize('args', [(), (None,), (list())])
     def test_fetch_exits_without_repos(args: Tuple[Any, ...], run: Mock) \
             -> None:
