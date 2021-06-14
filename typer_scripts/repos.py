@@ -8,7 +8,8 @@ from typing import Union, List, Optional
 from domestobot import get_commands_callbacks, dry_run_option
 from typer import Context, Option
 
-from typer_scripts.core import info, task_title, warning, run, RunMode
+from typer_scripts.core import (info, task_title, warning, run, RunMode,
+                                dry_run_repr)
 from typer_scripts.typer_tools import Typer
 
 _SUBSTRING_ALWAYS_PRESENT_IN_NON_EMPTY_OUTPUT = '->'
@@ -34,10 +35,11 @@ def fetch_yadm(mode: RunMode = run_mode_option) -> None:
 
 @app.command()
 @task_title('Checking yadm')
+@dry_run_repr
 def check_yadm_clean(mode: RunMode = run_mode_option) -> None:
     """Check if yadm has unpublished work."""
-    if (_has_unsaved_changes('yadm', mode=mode)
-            or _has_unpushed_commits('yadm', mode=mode)):
+    if (_has_unsaved_changes('yadm', mode=RunMode.DEFAULT)
+            or _has_unpushed_commits('yadm', mode=RunMode.DEFAULT)):
         warning('Yadm was not clean')
     else:
         info('Yadm was clean!')
@@ -56,12 +58,13 @@ def fetch_repos(repos: Optional[List[Path]] = None,
 
 @app.command()
 @task_title('Checking git repos')
+@dry_run_repr
 def check_repos_clean(repos: Optional[List[Path]] = None,
                       mode: RunMode = run_mode_option) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
     if dirty_repos := [repo for repo in sanitized_repos
-                       if is_tree_dirty(repo, mode)]:
+                       if is_tree_dirty(repo, RunMode.DEFAULT)]:
         for repo in dirty_repos:
             warning(f"Repository in {repo} was not clean")
     else:

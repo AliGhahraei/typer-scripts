@@ -6,7 +6,10 @@ from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Any, Callable, List, Union
 
+from domestobot import dry_run_option
 from typer import style
+
+FunctionType = Callable[..., Any]
 
 
 class RunMode(str, Enum):
@@ -14,9 +17,8 @@ class RunMode(str, Enum):
     DEFAULT = 'DEFAULT'
 
 
-def task_title(message: str) \
-        -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+def task_title(message: str) -> Callable[[FunctionType], FunctionType]:
+    def decorator(f: FunctionType) -> FunctionType:
 
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -52,3 +54,14 @@ def run(args: List[Union[str, Path]], mode: RunMode,
         return CompletedProcess(dry_run_args, 0, str(dry_run_args).encode())
     else:
         return subprocess.run(args, check=True, capture_output=capture_output)
+
+
+def dry_run_repr(f: FunctionType) -> FunctionType:
+    @wraps(f)
+    def wrapper(*args: Any, mode: RunMode = dry_run_option, **kwargs: Any) \
+            -> None:
+        if mode is RunMode.DRY_RUN:
+            print(f'function:{f.__name__}')
+        else:
+            f(*args, mode=mode, **kwargs)
+    return wrapper

@@ -86,9 +86,17 @@ def assert_clean_message_shown(out: str) -> None:
 
 def assert_repos_fetched(repos: Iterable[Path], run: Mock) -> None:
     run.assert_has_calls([
-        call(['git', '-C', repo.expanduser(), 'fetch'], RunMode.DEFAULT)
+        call(get_git_fetch_args(repo), RunMode.DEFAULT)
         for repo in repos
     ])
+
+
+def get_yadm_fetch_args() -> List[str]:
+    return ['yadm', 'fetch']
+
+
+def get_git_fetch_args(repo: Path) -> List[Union[str, Path]]:
+    return ['git', '-C', repo.expanduser(), 'fetch']
 
 
 def get_command_prefix_for_unpushed_commits() -> List[str]:
@@ -123,7 +131,7 @@ class TestFetchYadm:
     def test_fetch_runs_fetch(run: Mock) -> None:
         fetch_yadm()
 
-        run.assert_called_once_with(['yadm', 'fetch'], RunMode.DEFAULT)
+        run.assert_called_once_with(get_yadm_fetch_args(), RunMode.DEFAULT)
 
 
 class TestCheckYadmClean:
@@ -323,7 +331,14 @@ class TestCheckReposClean:
 class TestApp:
     @staticmethod
     @mark.usefixtures('set_repos_env')
-    def test_main_invokes_object_subcommands(cli_runner: CliRunner) -> None:
+    def test_main_dry_run_prints_expected_output_and_exits(
+            cli_runner: CliRunner, repos: List[Path],
+    ) -> None:
         result = cli_runner.invoke(app, '--dry-run', catch_exceptions=False)
 
+        assert str(tuple(get_yadm_fetch_args())) in result.stdout
+        assert 'function:check_yadm_clean' in result.stdout
+        for repo in repos:
+            assert str(tuple(get_git_fetch_args(repo))) in result.stdout
+        assert 'function:check_repos_clean' in result.stdout
         assert result.exit_code == 0
