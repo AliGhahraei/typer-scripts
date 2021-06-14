@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import subprocess
-from enum import Enum, auto
+from enum import Enum
 from functools import wraps
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -9,9 +9,9 @@ from typing import Any, Callable, List, Union
 from typer import style
 
 
-class RunMode(Enum):
-    DRY_RUN = auto()
-    DEFAULT = auto()
+class RunMode(str, Enum):
+    DRY_RUN = 'DRY_RUN'
+    DEFAULT = 'DEFAULT'
 
 
 def task_title(message: str) \
