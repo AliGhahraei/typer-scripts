@@ -6,7 +6,7 @@ from sys import exit
 from typing import Union, List, Optional
 
 from domestobot import get_commands_callbacks, dry_run_option
-from typer import Context, Option
+from typer import Context, Option, Argument
 
 from typer_scripts.core import (info, task_title, warning, run, RunMode,
                                 dry_run_repr)
@@ -45,7 +45,7 @@ def check_yadm_clean(mode: RunMode = run_mode_option) -> None:
 
 @app.command()
 @task_title('Fetching repos')
-def fetch_repos(repos: Optional[List[Path]] = None,
+def fetch_repos(repos: Optional[List[Path]] = Argument(None),
                 mode: RunMode = run_mode_option) \
         -> None:
     """Fetch new changes for repos."""
@@ -57,7 +57,7 @@ def fetch_repos(repos: Optional[List[Path]] = None,
 @app.command()
 @task_title('Checking git repos')
 @dry_run_repr
-def check_repos_clean(repos: Optional[List[Path]] = None,
+def check_repos_clean(repos: Optional[List[Path]] = Argument(None),
                       mode: RunMode = run_mode_option) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
