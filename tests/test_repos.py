@@ -227,7 +227,7 @@ class TestFetchRepos:
     @mark.parametrize('args', [(), (None,), (list())])
     def test_fetch_exits_without_repos(args: Tuple[Any, ...], run: Mock) \
             -> None:
-        message = ('Either the `repos` argument or the `TYPER_SCRIPTS_REPO` '
+        message = ('Either the `repos` argument or the `TYPER_SCRIPTS_REPOS` '
                    'env variable must be provided')
 
         with raises(SystemExit, match=message):

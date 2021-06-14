@@ -79,7 +79,7 @@ def _read_repos_env() -> List[Path]:
     try:
         env_repos = os.environ['TYPER_SCRIPTS_REPOS']
     except KeyError as e:
-        message = ('Either the `repos` argument or the `TYPER_SCRIPTS_REPO` '
+        message = ('Either the `repos` argument or the `TYPER_SCRIPTS_REPOS` '
                    'env variable must be provided')
         raise SystemExit(message) from e
     return [Path(path) for path in env_repos.split(' ')]
