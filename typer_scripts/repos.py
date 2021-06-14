@@ -12,8 +12,6 @@ from typer_scripts.core import (info, task_title, warning, run, RunMode,
                                 dry_run_repr)
 from typer_scripts.typer_tools import Typer
 
-_SUBSTRING_ALWAYS_PRESENT_IN_NON_EMPTY_OUTPUT = '->'
-
 app = Typer()
 run_mode_option = Option(RunMode.DEFAULT, hidden=True)
 
@@ -106,7 +104,7 @@ def _has_unsaved_changes(*command_prefix: Union[str, Path], mode: RunMode) \
         RunMode.DEFAULT,
         capture_output=True,
     )
-    return bool(_decode(unsaved_changes))
+    return bool(_decode_stripped(unsaved_changes))
 
 
 def _has_unpushed_commits(*command_prefix: Union[str, Path], mode: RunMode) \
@@ -117,9 +115,8 @@ def _has_unpushed_commits(*command_prefix: Union[str, Path], mode: RunMode) \
         RunMode.DEFAULT,
         capture_output=True,
     )
-    return (_SUBSTRING_ALWAYS_PRESENT_IN_NON_EMPTY_OUTPUT
-            in _decode(unpushed_commits))
+    return bool(_decode_stripped(unpushed_commits))
 
 
-def _decode(command_output: CompletedProcess[bytes]) -> str:
-    return command_output.stdout.decode('utf-8')
+def _decode_stripped(command_output: CompletedProcess[bytes]) -> str:
+    return command_output.stdout.decode('utf-8').strip()

@@ -34,7 +34,7 @@ def repos(repo1: Path) -> List[Path]:
 
 @fixture
 def clean_output() -> CompletedProcess[bytes]:
-    return CompletedProcess([], 0, b'')
+    return CompletedProcess([], 0, b'  ')
 
 
 @fixture
