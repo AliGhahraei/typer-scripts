@@ -31,3 +31,10 @@ class TestRun:
         assert result.args == ('echo', 'value')
         assert result.returncode == 0
         assert result.stdout == b"('echo', 'value')"
+
+    @staticmethod
+    def test_run_raises_exception_with_invalid_command(
+            capfd: CaptureFixture[str],
+    ) -> None:
+        with raises(CalledProcessError):
+            run(['ls', '--unknown-flag'], RunMode.DEFAULT)

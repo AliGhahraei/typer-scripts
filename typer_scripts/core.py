@@ -51,4 +51,4 @@ def run(args: List[Union[str, Path]], mode: RunMode,
         print(dry_run_args)
         return CompletedProcess(dry_run_args, 0, str(dry_run_args).encode())
     else:
-        return subprocess.run(args, capture_output=capture_output)
+        return subprocess.run(args, check=True, capture_output=capture_output)
