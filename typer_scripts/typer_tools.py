@@ -6,8 +6,10 @@ from typing import Callable, Any, Optional, cast
 import typer
 from typer.models import CommandFunctionType, Default
 
+from typer_scripts.core import catch_exceptions
 
-class Typer(typer.Typer):
+
+class App(typer.Typer):
     def callback(
             self,
             name: Optional[str] = Default(None),
@@ -15,12 +17,12 @@ class Typer(typer.Typer):
             **kwargs: Any,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         def decorator(f: CommandFunctionType) -> CommandFunctionType:
-            parent_callback = super(Typer, self).callback(
+            parent_callback = super(App, self).callback(
                 name,
                 invoke_without_command=invoke_without_command,
                 **kwargs
             )
-            wrapper = _fix_defaults(f)
+            wrapper = catch_exceptions(_fix_defaults(f))
             parent_callback(wrapper)
             return wrapper
 
@@ -32,11 +34,11 @@ class Typer(typer.Typer):
             **kwargs: Any,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         def decorator(f: CommandFunctionType) -> CommandFunctionType:
-            parent_command = super(Typer, self).command(
+            parent_command = super(App, self).command(
                 name,
                 **kwargs
             )
-            wrapper = _fix_defaults(f)
+            wrapper = catch_exceptions(_fix_defaults(f))
             parent_command(wrapper)
             return wrapper
 

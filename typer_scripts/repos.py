@@ -10,9 +10,9 @@ from typer import Context, Option, Argument
 
 from typer_scripts.core import (info, task_title, warning, run, RunMode,
                                 dry_run_repr)
-from typer_scripts.typer_tools import Typer
+from typer_scripts.typer_tools import App
 
-app = Typer()
+app = App()
 run_mode_option = Option(RunMode.DEFAULT, hidden=True)
 
 

@@ -4,14 +4,14 @@ from domestobot import (get_app as get_domestobot_app, get_root_dir,
                         get_groups_callbacks, dry_run_option)
 
 from typer_scripts.repos import app as repos_app
-from typer_scripts.typer_tools import Typer
+from typer_scripts.typer_tools import App
 
 
 def get_app(path: str) -> typer.Typer:
     return get_domestobot_app(get_root_dir() / f'{path}.toml')
 
 
-app = Typer()
+app = App()
 app.add_typer(get_app('maintenance'))
 app.add_typer(repos_app)
 

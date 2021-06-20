@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import subprocess
+import sys
 from enum import Enum
 from functools import wraps
 from pathlib import Path
@@ -64,4 +65,24 @@ def dry_run_repr(f: FunctionType) -> FunctionType:
             print(f'function:{f.__name__}')
         else:
             f(*args, mode=mode, **kwargs)
+    return wrapper
+
+
+class CoreException(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+def catch_exceptions(f: FunctionType) -> FunctionType:
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except CoreException as e:
+            print(e.message, file=sys.stderr)
+        except Exception:
+            print('Unhandled error, printing traceback:', file=sys.stderr)
+            raise
+
     return wrapper
