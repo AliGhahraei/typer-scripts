@@ -5,12 +5,16 @@ from enum import Enum
 from functools import wraps
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, Union, TypeVar, cast
 
 from domestobot import dry_run_option
 from typer import style
 
-FunctionType = Callable[..., Any]
+ArgsType = TypeVar('ArgsType')
+KwargsType = TypeVar('KwargsType')
+ReturnType = TypeVar('ReturnType')
+FunctionType = TypeVar('FunctionType', bound=Callable[..., Any])
+StatementType = TypeVar('StatementType', bound=Callable[..., None])
 
 
 class RunMode(str, Enum):
@@ -22,11 +26,11 @@ def task_title(message: str) -> Callable[[FunctionType], FunctionType]:
     def decorator(f: FunctionType) -> FunctionType:
 
         @wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: ArgsType, **kwargs: KwargsType) -> ReturnType:
             title(message)
             return f(*args, **kwargs)
 
-        return wrapper
+        return cast(FunctionType, wrapper)
     return decorator
 
 
@@ -57,15 +61,15 @@ def run(args: List[Union[str, Path]], mode: RunMode,
         return subprocess.run(args, check=True, capture_output=capture_output)
 
 
-def dry_run_repr(f: FunctionType) -> FunctionType:
+def dry_run_repr(f: StatementType) -> StatementType:
     @wraps(f)
-    def wrapper(*args: Any, mode: RunMode = dry_run_option, **kwargs: Any) \
-            -> None:
+    def wrapper(*args: ArgsType, mode: RunMode = dry_run_option,
+                **kwargs: KwargsType) -> None:
         if mode is RunMode.DRY_RUN:
-            print(f'function:{f.__name__}')
+            print(f'function:{f.__name__}')  # type: ignore[attr-defined]
         else:
             f(*args, mode=mode, **kwargs)
-    return wrapper
+    return cast(StatementType, wrapper)
 
 
 class CoreException(Exception):
@@ -74,15 +78,15 @@ class CoreException(Exception):
         super().__init__(message)
 
 
-def catch_exceptions(f: FunctionType) -> FunctionType:
+def catch_exceptions(f: StatementType) -> StatementType:
     @wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: ArgsType, **kwargs: KwargsType) -> None:
         try:
-            return f(*args, **kwargs)
+            f(*args, **kwargs)
         except CoreException as e:
             print(e.message, file=sys.stderr)
         except Exception:
             print('Unhandled error, printing traceback:', file=sys.stderr)
             raise
 
-    return wrapper
+    return cast(StatementType, wrapper)
