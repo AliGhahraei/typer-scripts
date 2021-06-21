@@ -14,6 +14,7 @@ def get_app(path: str) -> typer.Typer:
 app = App()
 app.add_typer(get_app('maintenance'))
 app.add_typer(repos_app)
+app.add_typer(get_app('backup'))
 
 
 @app.callback(invoke_without_command=True)
