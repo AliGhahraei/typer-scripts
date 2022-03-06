@@ -8,8 +8,8 @@ from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
 from typer.testing import CliRunner
 
 from typer_scripts.core import RunMode
-from typer_scripts.repos import (check_repos_clean, check_yadm_clean,
-                                 fetch_repos, fetch_yadm, app)
+from typer_scripts.repos import (check_repos_clean, check_dotfiles_clean,
+                                 fetch_repos, fetch_dotfiles, app)
 
 DARWIN = 'Darwin'
 LINUX = 'Linux'
@@ -62,6 +62,12 @@ def unset_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
 
 
 @fixture
+def set_dotfiles_env(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv('DOTFILES_REPO', 'TEST_DOTFILES_REPO')
+    monkeypatch.setenv('HOME', 'TEST_HOME')
+
+
+@fixture
 def cli_runner() -> CliRunner:
     return CliRunner()
 
@@ -91,8 +97,12 @@ def assert_repos_fetched(repos: Iterable[Path], run: Mock) -> None:
     ])
 
 
-def get_yadm_fetch_args() -> List[str]:
-    return ['yadm', 'fetch']
+def get_dotfiles_prefix() -> List[str]:
+    return ['git', '--git-dir=TEST_DOTFILES_REPO', '--work-tree=TEST_HOME']
+
+
+def get_fetch_dotfiles_args() -> List[str]:
+    return [*get_dotfiles_prefix(), 'fetch']
 
 
 def get_git_fetch_args(repo: Path) -> List[Union[str, Path]]:
@@ -117,83 +127,90 @@ def get_unsaved_changes_args(repo: Path) -> List[Union[str, Path]]:
             *get_command_prefix_for_unsaved_changes()]
 
 
-class TestFetchYadm:
+class TestFetchDotfiles:
     @staticmethod
     @mark.usefixtures('run')
-    def test_fetch_shows_fetching_yadm_message(
+    def test_fetch_shows_fetching_dotfiles_message(
             capsys: CaptureFixture[str]
     ) -> None:
-        fetch_yadm()
+        fetch_dotfiles()
 
-        assert_stdout('Fetching yadm', capsys.readouterr().out)
+        assert_stdout('Fetching dotfiles', capsys.readouterr().out)
 
     @staticmethod
+    @mark.usefixtures('set_dotfiles_env')
     def test_fetch_runs_fetch(run: Mock) -> None:
-        fetch_yadm()
+        fetch_dotfiles()
 
-        run.assert_called_once_with(get_yadm_fetch_args(), RunMode.DEFAULT)
+        run.assert_called_once_with(get_fetch_dotfiles_args(), RunMode.DEFAULT)
 
 
-class TestCheckYadmClean:
+@mark.usefixtures('set_dotfiles_env')
+class TestCheckDotfilesClean:
     @staticmethod
     @mark.usefixtures('run')
-    def test_check_shows_checking_yadm_message(
+    def test_check_shows_checking_dotfiles_message(
             capsys: CaptureFixture[str]
     ) -> None:
-        check_yadm_clean()
+        check_dotfiles_clean()
 
-        assert_stdout('Checking yadm', capsys.readouterr().out)
+        assert_stdout('Checking dotfiles', capsys.readouterr().out)
 
     @staticmethod
-    def test_check_shows_not_clean_on_yadm_with_unsaved_changes(
+    def test_check_shows_not_clean_on_dotfiles_with_unsaved_changes(
             run: Mock, capsys: CaptureFixture[str],
             unsaved_changes_output: CompletedProcess[bytes]
     ) -> None:
         run.side_effect = [unsaved_changes_output]
 
-        check_yadm_clean()
+        check_dotfiles_clean()
 
         run.assert_called_once_with(
-            ['yadm', *get_command_prefix_for_unsaved_changes()],
+            [*get_dotfiles_prefix(),
+             *get_command_prefix_for_unsaved_changes()],
             RunMode.DEFAULT,
             capture_output=True,
         )
-        assert_stdout('Yadm was not clean', capsys.readouterr().out)
+        assert_stdout('Dotfiles were not clean', capsys.readouterr().out)
 
     @staticmethod
-    def test_check_shows_not_clean_on_yadm_with_unpushed_commits(
+    def test_check_shows_not_clean_on_dotfiles_with_unpushed_commits(
         run: Mock, capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
         unpushed_commits_output: CompletedProcess[bytes]
     ) -> None:
         run.side_effect = [clean_output, unpushed_commits_output]
 
-        check_yadm_clean()
+        check_dotfiles_clean()
 
         run.assert_has_calls([
-            call(['yadm', *get_command_prefix_for_unsaved_changes()],
+            call([*get_dotfiles_prefix(),
+                  *get_command_prefix_for_unsaved_changes()],
                  RunMode.DEFAULT, capture_output=True),
-            call(['yadm', *get_command_prefix_for_unpushed_commits()],
+            call([*get_dotfiles_prefix(),
+                  *get_command_prefix_for_unpushed_commits()],
                  RunMode.DEFAULT, capture_output=True),
         ])
-        assert_stdout('Yadm was not clean', capsys.readouterr().out)
+        assert_stdout('Dotfiles were not clean', capsys.readouterr().out)
 
     @staticmethod
-    def test_check_shows_clean_on_clean_yadm(
+    def test_check_shows_clean_on_clean_dotfiles(
         run: Mock, capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
     ) -> None:
         run.side_effect = [clean_output] * 2
 
-        check_yadm_clean()
+        check_dotfiles_clean()
 
         run.assert_has_calls([
-            call(['yadm', *get_command_prefix_for_unsaved_changes()],
+            call([*get_dotfiles_prefix(),
+                  *get_command_prefix_for_unsaved_changes()],
                  RunMode.DEFAULT, capture_output=True),
-            call(['yadm', *get_command_prefix_for_unpushed_commits()],
+            call([*get_dotfiles_prefix(),
+                  *get_command_prefix_for_unpushed_commits()],
                  RunMode.DEFAULT, capture_output=True),
         ])
-        assert_stdout('Yadm was clean!', capsys.readouterr().out)
+        assert_stdout('Dotfiles were clean!', capsys.readouterr().out)
 
 
 class TestFetchRepos:
@@ -330,14 +347,14 @@ class TestCheckReposClean:
 
 class TestApp:
     @staticmethod
-    @mark.usefixtures('set_repos_env')
+    @mark.usefixtures('set_repos_env', 'set_dotfiles_env')
     def test_main_dry_run_prints_expected_output_and_exits(
             cli_runner: CliRunner, repos: List[Path],
     ) -> None:
         result = cli_runner.invoke(app, '--dry-run', catch_exceptions=False)
 
-        assert str(tuple(get_yadm_fetch_args())) in result.stdout
-        assert 'function:check_yadm_clean' in result.stdout
+        assert str(tuple(get_fetch_dotfiles_args())) in result.stdout
+        assert 'function:check_dotfiles_clean' in result.stdout
         for repo in repos:
             assert str(tuple(get_git_fetch_args(repo))) in result.stdout
         assert 'function:check_repos_clean' in result.stdout

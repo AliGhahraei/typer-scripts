@@ -25,22 +25,23 @@ def repos(ctx: Context, dry_run: bool = dry_run_option) -> None:
 
 
 @app.command()
-@task_title('Fetching yadm')
-def fetch_yadm(mode: RunMode = run_mode_option) -> None:
-    """Fetch new changes for yadm."""
-    run(['yadm', 'fetch'], mode)
+@task_title('Fetching dotfiles')
+def fetch_dotfiles(mode: RunMode = run_mode_option) -> None:
+    """Fetch new changes for dotfiles."""
+    run([*_get_git_dotfiles_command(), 'fetch'], mode)
 
 
 @app.command()
-@task_title('Checking yadm')
+@task_title('Checking dotfiles')
 @dry_run_repr
-def check_yadm_clean(mode: RunMode = run_mode_option) -> None:
-    """Check if yadm has unpublished work."""
-    if (_has_unsaved_changes('yadm', mode=RunMode.DEFAULT)
-            or _has_unpushed_commits('yadm', mode=RunMode.DEFAULT)):
-        warning('Yadm was not clean')
+def check_dotfiles_clean(mode: RunMode = run_mode_option) -> None:
+    """Check if dotfiles have unpublished work."""
+    command = _get_git_dotfiles_command()
+    if (_has_unsaved_changes(*command, mode=RunMode.DEFAULT)
+            or _has_unpushed_commits(*command, mode=RunMode.DEFAULT)):
+        warning('Dotfiles were not clean')
     else:
-        info('Yadm was clean!')
+        info('Dotfiles were clean!')
 
 
 @app.command()
@@ -67,6 +68,11 @@ def check_repos_clean(repos: Optional[List[Path]] = Argument(None),
             warning(f"Repository in {repo} was not clean")
     else:
         info("Everything's clean!")
+
+
+def _get_git_dotfiles_command() -> List[str]:
+    return ['git', f'--git-dir={os.getenv("DOTFILES_REPO")}',
+            f'--work-tree={os.getenv("HOME")}']
 
 
 def sanitize_repos(repos_param: Optional[List[Path]]) -> List[Path]:
