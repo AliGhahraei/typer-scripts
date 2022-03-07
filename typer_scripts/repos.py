@@ -71,8 +71,7 @@ def check_repos_clean(repos: Optional[List[Path]] = Argument(None),
 
 
 def _get_git_dotfiles_command() -> List[str]:
-    return ['git', f'--git-dir={os.getenv("DOTFILES_REPO")}',
-            f'--work-tree={os.getenv("HOME")}']
+    return ['git', f'--git-dir={os.getenv("DOTFILES_REPO")}']
 
 
 def sanitize_repos(repos_param: Optional[List[Path]]) -> List[Path]:

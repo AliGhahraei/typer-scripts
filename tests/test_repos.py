@@ -64,7 +64,6 @@ def unset_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
 @fixture
 def set_dotfiles_env(monkeypatch: MonkeyPatch):
     monkeypatch.setenv('DOTFILES_REPO', 'TEST_DOTFILES_REPO')
-    monkeypatch.setenv('HOME', 'TEST_HOME')
 
 
 @fixture
@@ -98,7 +97,7 @@ def assert_repos_fetched(repos: Iterable[Path], run: Mock) -> None:
 
 
 def get_dotfiles_prefix() -> List[str]:
-    return ['git', '--git-dir=TEST_DOTFILES_REPO', '--work-tree=TEST_HOME']
+    return ['git', '--git-dir=TEST_DOTFILES_REPO']
 
 
 def get_fetch_dotfiles_args() -> List[str]:
