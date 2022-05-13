@@ -15,6 +15,7 @@ def get_app(path: str) -> typer.Typer:
 
 app = App()
 app.add_typer(get_app('maintenance'))
+app.add_typer(get_app('config-save'))
 app.add_typer(repos_app)
 app.add_typer(get_app('backup'))
 app.add_typer(get_app(CONFIG_APPLY))
