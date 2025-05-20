@@ -1,0 +1,11 @@
+[tasks]
+setup = "poetry install"
+test = "poetry run pytest"
+ci = [
+  'mise setup',
+  'mise test'
+]
+
+[tools]
+poetry = "latest"
+python = "latest"
