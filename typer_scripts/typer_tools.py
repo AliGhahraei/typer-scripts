@@ -11,16 +11,14 @@ from typer_scripts.core import catch_exceptions
 
 class App(typer.Typer):
     def callback(
-            self,
-            name: Optional[str] = Default(None),
-            invoke_without_command: bool = Default(False),
-            **kwargs: Any,
+        self,
+        name: Optional[str] = Default(None),
+        invoke_without_command: bool = Default(False),
+        **kwargs: Any,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         def decorator(f: CommandFunctionType) -> CommandFunctionType:
             parent_callback = super(App, self).callback(
-                name,
-                invoke_without_command=invoke_without_command,
-                **kwargs
+                name, invoke_without_command=invoke_without_command, **kwargs
             )
             wrapper = catch_exceptions(_fix_defaults(f))
             parent_callback(wrapper)
@@ -29,15 +27,12 @@ class App(typer.Typer):
         return decorator
 
     def command(
-            self,
-            name: Optional[str] = Default(None),
-            **kwargs: Any,
+        self,
+        name: Optional[str] = Default(None),
+        **kwargs: Any,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         def decorator(f: CommandFunctionType) -> CommandFunctionType:
-            parent_command = super(App, self).command(
-                name,
-                **kwargs
-            )
+            parent_command = super(App, self).command(name, **kwargs)
             wrapper = catch_exceptions(_fix_defaults(f))
             parent_command(wrapper)
             return wrapper
@@ -49,19 +44,17 @@ def _fix_defaults(f: CommandFunctionType) -> CommandFunctionType:
     """https://github.com/tiangolo/typer/issues/279"""
     sig = signature(f)
     patched_defaults = {
-        name: getattr(sig_default, 'default', sig_default)
+        name: getattr(sig_default, "default", sig_default)
         for name, sig_param in sig.parameters.items()
         if (sig_default := sig_param.default) is not Parameter.empty
     }
 
     @wraps(f)
     def wrapper(*args, **kwargs) -> Any:
-        passed_args_names = {name for name, _
-                             in zip(sig.parameters.keys(), args)}
+        passed_args_names = {name for name, _ in zip(sig.parameters.keys(), args)}
         passed_params = passed_args_names | kwargs.keys()
         not_passed_params = sig.parameters.keys() - passed_params
-        needed_defaults = {name: patched_defaults[name]
-                           for name in not_passed_params}
+        needed_defaults = {name: patched_defaults[name] for name in not_passed_params}
         return f(*args, **kwargs, **needed_defaults)
 
     return cast(CommandFunctionType, wrapper)

@@ -19,27 +19,26 @@ class TestApp:
 
         @app_.callback()
         def callback() -> None:
-            raise CoreException('message')
+            raise CoreException("message")
 
         callback()
 
-        assert 'message\n' == capsys.readouterr().err
+        assert "message\n" == capsys.readouterr().err
 
     @staticmethod
     def test_callback_prints_message_for_unhandled_errors(
-            capsys: CaptureFixture[str],
+        capsys: CaptureFixture[str],
     ):
         app_ = App()
 
         @app_.callback()
         def callback() -> None:
-            raise Exception('message')
+            raise Exception("message")
 
         with raises(Exception):
             callback()
 
-        assert 'Unhandled error, printing traceback:\n' \
-            == capsys.readouterr().err
+        assert "Unhandled error, printing traceback:\n" == capsys.readouterr().err
 
     @staticmethod
     def test_command_catches_core_exception(capsys: CaptureFixture[str]):
@@ -47,39 +46,38 @@ class TestApp:
 
         @app_.command()
         def command() -> None:
-            raise CoreException('message')
+            raise CoreException("message")
 
         command()
 
-        assert 'message\n' == capsys.readouterr().err
+        assert "message\n" == capsys.readouterr().err
 
     @staticmethod
     def test_command_prints_message_for_unhandled_errors(
-            capsys: CaptureFixture[str],
+        capsys: CaptureFixture[str],
     ):
         app_ = App()
 
         @app_.command()
         def command() -> None:
-            raise Exception('message')
+            raise Exception("message")
 
         with raises(Exception):
             command()
 
-        assert 'Unhandled error, printing traceback:\n' \
-            == capsys.readouterr().err
+        assert "Unhandled error, printing traceback:\n" == capsys.readouterr().err
 
 
 class TestTyperWithOptionDefault:
     @staticmethod
     @fixture
     def callback_default() -> str:
-        return 'callback_default'
+        return "callback_default"
 
     @staticmethod
     @fixture
     def command_default() -> str:
-        return 'command_default'
+        return "command_default"
 
     @staticmethod
     @fixture
@@ -87,8 +85,7 @@ class TestTyperWithOptionDefault:
         app_ = App()
 
         @app_.callback(invoke_without_command=True)
-        def main(message: str = Option(callback_default)) \
-                -> None:
+        def main(message: str = Option(callback_default)) -> None:
             print(message)
 
         @app_.command()
@@ -100,11 +97,13 @@ class TestTyperWithOptionDefault:
     @staticmethod
     @fixture
     def command_name() -> str:
-        return 'command-name'
+        return "command-name"
 
     @staticmethod
     def test_callback_gets_default_value_when_invoked_with_typer(
-            app: App, cli_runner: CliRunner, callback_default: str,
+        app: App,
+        cli_runner: CliRunner,
+        callback_default: str,
     ) -> None:
         result = cli_runner.invoke(app, catch_exceptions=False)
 
@@ -112,7 +111,9 @@ class TestTyperWithOptionDefault:
 
     @staticmethod
     def test_callback_gets_default_value_when_invoked_as_function(
-            app: App, capsys: CaptureFixture[str], callback_default: str,
+        app: App,
+        capsys: CaptureFixture[str],
+        callback_default: str,
     ) -> None:
         f = app.registered_callback.callback  # type: ignore[union-attr]
 
@@ -122,26 +123,29 @@ class TestTyperWithOptionDefault:
 
     @staticmethod
     def test_callback_gets_keyword_value_when_invoked_with_typer(
-            app: App, cli_runner: CliRunner,
+        app: App,
+        cli_runner: CliRunner,
     ) -> None:
-        result = cli_runner.invoke(app, ['--message', 'kwarg'],
-                                   catch_exceptions=False)
+        result = cli_runner.invoke(app, ["--message", "kwarg"], catch_exceptions=False)
 
-        assert 'kwarg' in result.stdout
+        assert "kwarg" in result.stdout
 
     @staticmethod
     def test_callback_gets_positional_value_when_invoked_as_function(
-            app: App, capsys: CaptureFixture[str],
+        app: App,
+        capsys: CaptureFixture[str],
     ) -> None:
         f = app.registered_callback.callback  # type: ignore[union-attr]
 
-        f('positional')  # type:ignore[misc]
+        f("positional")  # type:ignore[misc]
 
-        assert 'positional' in capsys.readouterr().out
+        assert "positional" in capsys.readouterr().out
 
     @staticmethod
     def test_command_gets_default_value_when_invoked_as_function(
-            app: App, capsys: CaptureFixture[str], command_default: str,
+        app: App,
+        capsys: CaptureFixture[str],
+        command_default: str,
     ) -> None:
         f = app.registered_commands[0].callback
 
@@ -154,7 +158,7 @@ class TestTyperWithPositionalParamAndOptionDefault:
     @staticmethod
     @fixture
     def command_default() -> str:
-        return 'command_default'
+        return "command_default"
 
     @staticmethod
     @fixture
@@ -162,8 +166,7 @@ class TestTyperWithPositionalParamAndOptionDefault:
         app_ = App()
 
         @app_.command()
-        def command_name(nondefault: str,
-                         default: str = Option(command_default)):
+        def command_name(nondefault: str, default: str = Option(command_default)):
             print(nondefault)
             print(default)
 
@@ -171,14 +174,16 @@ class TestTyperWithPositionalParamAndOptionDefault:
 
     @staticmethod
     def test_command_gets_all_values_when_invoked_as_function(
-            app: App, capsys: CaptureFixture[str], command_default: str,
+        app: App,
+        capsys: CaptureFixture[str],
+        command_default: str,
     ) -> None:
         f = app.registered_commands[0].callback
 
-        f('positional')  # type:ignore[misc]
+        f("positional")  # type:ignore[misc]
 
         stdout = capsys.readouterr().out
-        assert 'positional' in stdout
+        assert "positional" in stdout
         assert command_default in stdout
 
 
@@ -186,7 +191,7 @@ class TestTyperWithNonTyperDefault:
     @staticmethod
     @fixture
     def command_default() -> str:
-        return 'command_default'
+        return "command_default"
 
     @staticmethod
     @fixture
@@ -201,7 +206,9 @@ class TestTyperWithNonTyperDefault:
 
     @staticmethod
     def test_command_gets_all_values_when_invoked_as_function(
-            app: App, capsys: CaptureFixture[str], command_default: str,
+        app: App,
+        capsys: CaptureFixture[str],
+        command_default: str,
     ) -> None:
         f = app.registered_commands[0].callback
 
