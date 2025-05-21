@@ -1,17 +1,24 @@
 [vars]
-poetry_run_prefix = 'poetry run'
-ruff_check_prefix = '{{vars.poetry_run_prefix}} ruff check'
+run_prefix = 'poetry run'
+ruff_prefix = '{{vars.run_prefix}} ruff'
+lint_prefix = '{{vars.ruff_prefix}} check'
+format_prefix = '{{vars.ruff_prefix}} format'
 
 [tasks]
-lint = '{{vars.ruff_check_prefix}}'
-fix = '{{vars.ruff_check_prefix}} --fix'
+check_lint = '{{vars.lint_prefix}}'
+fix_lint = '{{vars.lint_prefix}} --fix'
+check_format = '{{vars.format_prefix}} --check'
+fix_format = '{{vars.format_prefix}}'
 
 setup = "poetry install"
-test = "{{vars.poetry_run_prefix}} pytest"
+test = "{{vars.run_prefix}} pytest"
 local_ci = 'act'
 
+[tasks.fix]
+depends = ['fix_lint', 'fix_format']
+
 [tasks.build]
-depends = ['lint', 'test']
+depends = ['check_lint', 'check_format', 'test']
 
 [tasks.ci]
 depends = ['setup']
