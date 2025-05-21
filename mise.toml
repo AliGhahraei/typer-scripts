@@ -1,11 +1,13 @@
 [vars]
-ruff_check_cmd = 'poetry run ruff check'
+poetry_run_prefix = 'poetry run'
+ruff_check_prefix = '{{vars.poetry_run_prefix}} ruff check'
 
 [tasks]
+lint = '{{vars.ruff_check_prefix}}'
+fix = '{{vars.ruff_check_prefix}} --fix'
+
 setup = "poetry install"
-lint = '{{vars.ruff_check_cmd}}'
-fix = '{{vars.ruff_check_cmd}} --fix'
-test = "poetry run pytest"
+test = "{{vars.poetry_run_prefix}} pytest"
 local_ci = 'act'
 
 [tasks.build]
@@ -13,7 +15,7 @@ depends = ['lint', 'test']
 
 [tasks.ci]
 depends = ['setup']
-run = 'mise build' # Adding to depends would make it run before setup finishes
+run = 'mise build' # Adding to depends could make it run before setup finishes
 
 [tools]
 act = "latest"
