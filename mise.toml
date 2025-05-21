@@ -1,9 +1,18 @@
+[vars]
+ruff_check_cmd = 'poetry run ruff check'
+
 [tasks]
 setup = "poetry install"
+lint = '{{vars.ruff_check_cmd}}'
+fix = '{{vars.ruff_check_cmd}} --fix'
 test = "poetry run pytest"
+build = [
+  'mise lint',
+  'mise test'
+]
 ci = [
   'mise setup',
-  'mise test'
+  'mise build'
 ]
 local_ci = 'act'
 
