@@ -6,15 +6,14 @@ setup = "poetry install"
 lint = '{{vars.ruff_check_cmd}}'
 fix = '{{vars.ruff_check_cmd}} --fix'
 test = "poetry run pytest"
-build = [
-  'mise lint',
-  'mise test'
-]
-ci = [
-  'mise setup',
-  'mise build'
-]
 local_ci = 'act'
+
+[tasks.build]
+depends = ['lint', 'test']
+
+[tasks.ci]
+depends = ['setup']
+run = 'mise build' # Adding to depends would make it run before setup finishes
 
 [tools]
 act = "latest"
