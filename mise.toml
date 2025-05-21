@@ -14,6 +14,8 @@ fix_lint = '{{vars.lint_prefix}} --fix'
 check_format = '{{vars.format_prefix}} --check'
 fix_format = '{{vars.format_prefix}}'
 
+check_typing = '{{vars.run_prefix}} basedpyright'
+
 setup = "poetry install"
 local_ci = 'act'
 
@@ -27,7 +29,7 @@ run = [
 ]
 
 [tasks.build]
-depends = ['check_lint', 'check_format', 'test']
+depends = ['check_lint', 'check_format', 'check_typing', 'test']
 
 [tasks.ci]
 depends = ['setup']
