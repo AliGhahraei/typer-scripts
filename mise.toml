@@ -1,13 +1,16 @@
 [vars]
 run_prefix = 'poetry run'
+
 ruff_prefix = '{{vars.run_prefix}} ruff'
+coverage_prefix = "{{vars.run_prefix}} coverage"
+
 lint_prefix = '{{vars.ruff_prefix}} check'
 format_prefix = '{{vars.ruff_prefix}} format'
-coverage_prefix = "{{vars.run_prefix}} coverage"
 
 [tasks]
 check_lint = '{{vars.lint_prefix}}'
 fix_lint = '{{vars.lint_prefix}} --fix'
+
 check_format = '{{vars.format_prefix}} --check'
 fix_format = '{{vars.format_prefix}}'
 
