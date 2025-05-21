@@ -5,7 +5,9 @@ ci = [
   'mise setup',
   'mise test'
 ]
+local_ci = 'act'
 
 [tools]
+act = "latest"
 poetry = "latest"
 python = "latest"

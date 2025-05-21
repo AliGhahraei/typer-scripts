@@ -1,3 +1,10 @@
+[tools.act]
+version = "0.2.77"
+backend = "aqua:nektos/act"
+
+[tools.act.checksums]
+"act_Linux_x86_64.tar.gz" = "sha256:be48669e49cfed33d36f4c34c4fce2722c8261a47b174d66cee751a219e75d8e"
+
 [tools.poetry]
 version = "2.1.3"
 backend = "asdf:poetry"
