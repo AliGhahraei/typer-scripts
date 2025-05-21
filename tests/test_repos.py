@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
 from typing import List, Union, Iterable, Tuple, Any
@@ -57,7 +58,8 @@ def set_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
 
 @fixture
 def unset_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
-    monkeypatch.delenv('TYPER_SCRIPTS_REPOS')
+    if os.getenv('TYPER_SCRIPTS_REPOS'):
+        monkeypatch.delenv('TYPER_SCRIPTS_REPOS')
     yield
 
 
