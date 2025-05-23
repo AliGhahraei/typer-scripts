@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import typer
 from domestobot import (
-    get_app as get_domestobot_app,
+    get_app,
     get_root_dir,
     get_groups_callbacks,
     dry_run_option,
@@ -13,16 +13,16 @@ from typer_scripts.typer_tools import App
 CONFIG_APPLY = "config-apply"
 
 
-def get_app(path: str) -> typer.Typer:
-    return get_domestobot_app(get_root_dir() / f"{path}.toml")
+def add_config_typer(app_: App, name: str) -> None:
+    app_.add_typer(get_app(get_root_dir() / f"{name}.toml"), name=name)
 
 
 app = App()
-app.add_typer(get_app("maintenance"))
-app.add_typer(get_app("config-save"))
-app.add_typer(repos_app)
-app.add_typer(get_app("backup"))
-app.add_typer(get_app(CONFIG_APPLY))
+add_config_typer(app, "maintenance")
+add_config_typer(app, "config-save")
+app.add_typer(repos_app, name="repos")
+add_config_typer(app, "backup")
+add_config_typer(app, CONFIG_APPLY)
 
 
 @app.callback(invoke_without_command=True)

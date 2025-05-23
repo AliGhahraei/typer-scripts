@@ -12,13 +12,13 @@ from typer_scripts.core import catch_exceptions
 class App(typer.Typer):
     def callback(
         self,
-        name: Optional[str] = Default(None),
+        *,
         invoke_without_command: bool = Default(False),
         **kwargs: Any,
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         def decorator(f: CommandFunctionType) -> CommandFunctionType:
             parent_callback = super(App, self).callback(
-                name, invoke_without_command=invoke_without_command, **kwargs
+                invoke_without_command=invoke_without_command, **kwargs
             )
             wrapper = catch_exceptions(_fix_defaults(f))
             parent_callback(wrapper)
