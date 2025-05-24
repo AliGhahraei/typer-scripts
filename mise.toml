@@ -28,12 +28,16 @@ run = [
   "{{vars.coverage_prefix}} report"
 ]
 
-[tasks.build]
+[tasks.check]
 depends = ['check_lint', 'check_format', 'check_typing', 'test']
+
+[tasks.build]
+depends = ['fix']
+run = 'mise check' # Adding to depends could make it run before setup finishes
 
 [tasks.ci]
 depends = ['setup']
-run = 'mise build' # Adding to depends could make it run before setup finishes
+run = 'mise check' # Adding to depends could make it run before setup finishes
 
 [tools]
 act = "latest"
