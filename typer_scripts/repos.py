@@ -5,9 +5,10 @@ from subprocess import CalledProcessError, CompletedProcess
 from sys import exit
 
 from domestobot import get_commands_callbacks, dry_run_option  # pyright: ignore[reportAny]
-from typer import Context, Argument
+from typer import Context, Argument, Exit
 
 from typer_scripts.core import (
+    error,
     info,
     run_mode_option,  # pyright: ignore[reportAny]
     task_title,
@@ -27,6 +28,9 @@ def repos(ctx: Context, dry_run: bool = dry_run_option) -> None:
     if ctx.invoked_subcommand is None:
         for command in get_commands_callbacks(app).values():
             command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
+    elif dry_run:
+        error("Cannot pass dry-run and a subcommand")
+        raise Exit(1)
 
 
 @app.command()

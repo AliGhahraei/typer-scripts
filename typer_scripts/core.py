@@ -8,9 +8,10 @@ from subprocess import CompletedProcess
 from typing import Callable, Protocol
 
 from rich.console import Console
-from typer import Option
+from typer import Exit, Option
 
 console = Console()
+err_console = Console(stderr=True)
 
 
 class RunMode(str, Enum):
@@ -44,6 +45,10 @@ def info(message: str) -> None:
 
 def warning(message: str) -> None:
     console.print(message, style="yellow")
+
+
+def error(message: str) -> None:
+    err_console.print(message, style="red")
 
 
 def run(
@@ -88,6 +93,8 @@ def catch_exceptions[**P](f: Callable[P, None]) -> Callable[P, None]:
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         try:
             f(*args, **kwargs)
+        except Exit:
+            raise
         except CoreException as e:
             print(e.message, file=sys.stderr)
         except Exception:

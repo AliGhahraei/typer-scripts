@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
+from _pytest.capture import CaptureResult
 from pytest import fixture, CaptureFixture, raises
-from typer import Option
+from typer import Exit, Option
 from typer.testing import CliRunner
 
 from typer_scripts.core import CoreException
 from typer_scripts.typer_tools import App
-
-
-@fixture
-def cli_runner() -> CliRunner:
-    return CliRunner(mix_stderr=False)
 
 
 class TestApp:
@@ -66,6 +62,21 @@ class TestApp:
             command()
 
         assert "Unhandled error, printing traceback:\n" == capsys.readouterr().err
+
+    @staticmethod
+    def test_command_exits_without_message_when_it_raises_exit(
+        capsys: CaptureFixture[str],
+    ):
+        app_ = App()
+
+        @app_.command()
+        def command() -> None:
+            raise Exit(code=1)
+
+        with raises(Exit):
+            command()
+
+        assert capsys.readouterr() == CaptureResult("", "")
 
 
 class TestTyperWithOptionDefault:

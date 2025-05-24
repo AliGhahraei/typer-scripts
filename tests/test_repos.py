@@ -71,11 +71,6 @@ def set_dotfiles_env(monkeypatch: MonkeyPatch):
     monkeypatch.setenv("DOTFILES_REPO", "TEST_DOTFILES_REPO")
 
 
-@fixture
-def cli_runner() -> CliRunner:
-    return CliRunner()
-
-
 def assert_stdout(message: str, out: str):
     assert message in out
 
@@ -402,3 +397,13 @@ class TestApp:
             assert str(tuple(get_git_fetch_args(repo))) in result.stdout
         assert "function:check_repos_clean" in result.stdout
         assert result.exit_code == 0
+
+    @staticmethod
+    def test_main_dry_run_with_subcommand_exits_with_error(
+        cli_runner: CliRunner,
+    ) -> None:
+        result = cli_runner.invoke(
+            app, ["--dry-run", "fetch-dotfiles"], catch_exceptions=False
+        )
+        assert "Cannot pass dry-run and a subcommand" in result.stderr
+        assert result.exit_code == 1
