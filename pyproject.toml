@@ -23,6 +23,8 @@ dbot = 'typer_scripts.main:app'
 
 [tool.coverage.run]
 branch = true
+source = ['typer_scripts', 'tests']
+omit = ['typer_scripts/main.py']
 
 [tool.coverage.report]
 exclude_lines = [
