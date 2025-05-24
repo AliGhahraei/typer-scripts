@@ -22,7 +22,6 @@ class RunMode(str, Enum):
 
 DRY_RUN_HELP = "Print commands for every step instead of running them"
 dry_run_option = Option(help=DRY_RUN_HELP, show_default=False)  # pyright: ignore[reportAny]
-run_mode_option = Option(hidden=True)  # pyright: ignore[reportAny]
 
 
 class CmdRunner(Protocol):
@@ -80,7 +79,7 @@ class CmdRunnerGetter(ParamType):
         return self.dry_runner if ctx and ctx.obj else self.default_runner  # pyright: ignore[reportAny]
 
 
-new_run_mode_option = Argument(  # pyright: ignore[reportAny]
+run_mode_option = Argument(  # pyright: ignore[reportAny]
     hidden=True,
     click_type=CmdRunnerGetter(),
     default_factory=lambda: ...,  # Default always passed to custom type's convert, so value is irrelevant
@@ -124,21 +123,12 @@ def error(message: str) -> None:
     err_console.print(message, style="red")
 
 
-def run(
-    args: list[str | Path], mode: RunMode, capture_output: bool = False
-) -> CompletedProcess[bytes]:
-    if mode is RunMode.DRY_RUN:
-        return DryRunner()(args, capture_output)
-    else:
-        return subprocess.run(args, check=True, capture_output=capture_output)
-
-
 class DryRunnable[**P](Protocol):
     __name__: str
 
     def __call__(
         self,
-        cmd_runner: Annotated[CmdRunner, new_run_mode_option],
+        cmd_runner: Annotated[CmdRunner, run_mode_option],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
@@ -148,7 +138,7 @@ class DryRunnable[**P](Protocol):
 def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
     @wraps(f)
     def wrapper(
-        cmd_runner: Annotated[CmdRunner, new_run_mode_option],
+        cmd_runner: Annotated[CmdRunner, run_mode_option],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:

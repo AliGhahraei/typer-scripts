@@ -3,7 +3,7 @@ from pathlib import Path
 from collections.abc import Iterable
 from subprocess import CalledProcessError, CompletedProcess
 from typing import Any
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call
 
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
 from typer.testing import CliRunner
@@ -27,12 +27,6 @@ def runner() -> Mock:
     runner = Mock(spec=CmdRunner)
     runner.mode = RunMode.DEFAULT
     return runner
-
-
-@fixture
-def run():
-    with patch("typer_scripts.repos.run") as run_mock:
-        yield run_mock
 
 
 @fixture
@@ -88,10 +82,8 @@ def assert_clean_message_shown(out: str) -> None:
     assert_stdout("Everything's clean!", out)
 
 
-def assert_repos_fetched(repos: Iterable[Path], run: Mock) -> None:
-    run.assert_has_calls(
-        [call(get_git_fetch_args(repo), RunMode.DEFAULT) for repo in repos]
-    )
+def assert_repos_fetched(repos: Iterable[Path], runner: Mock) -> None:
+    runner.assert_has_calls([call(get_git_fetch_args(repo)) for repo in repos])
 
 
 def get_dotfiles_prefix() -> list[str]:
@@ -223,31 +215,32 @@ class TestCheckDotfilesClean:
 
 class TestFetchRepos:
     @staticmethod
-    @mark.usefixtures("run")
     def test_fetch_shows_fetching_repos_message(
+        runner: Mock,
         repos: list[Path],
         capsys: CaptureFixture[str],
     ) -> None:
-        fetch_repos(repos=repos)
+        fetch_repos(runner, repos=repos)
 
         assert_stdout("Fetching repos", capsys.readouterr().out)
 
     @staticmethod
-    def test_fetch_is_run_for_every_repo(run: Mock, repos: list[Path]) -> None:
-        fetch_repos(repos=repos)
+    def test_fetch_is_run_for_every_repo(runner: Mock, repos: list[Path]) -> None:
+        fetch_repos(runner, repos=repos)
 
-        assert_repos_fetched(repos, run)
+        assert_repos_fetched(repos, runner)
 
     @staticmethod
     @mark.usefixtures("set_repos_env")
-    def test_fetch_uses_env_as_default(run: Mock, repos: list[Path]) -> None:
-        fetch_repos()
+    def test_fetch_uses_env_as_default(runner: Mock, repos: list[Path]) -> None:
+        fetch_repos(runner)
 
-        assert_repos_fetched(repos, run)
+        assert_repos_fetched(repos, runner)
 
     @staticmethod
     @mark.parametrize("kwargs", [{}, {"repos": None}, {"repos": list[Path]()}])
     def test_fetch_exits_without_repos(
+        runner: Mock,
         kwargs: dict[str, Any],  # pyright: ignore[reportExplicitAny]
     ) -> None:
         message = (
@@ -256,7 +249,7 @@ class TestFetchRepos:
         )
 
         with raises(SystemExit, match=message):
-            fetch_repos(**kwargs)  # pyright: ignore[reportAny]
+            fetch_repos(runner, **kwargs)  # pyright: ignore[reportAny]
 
 
 class TestCheckReposClean:

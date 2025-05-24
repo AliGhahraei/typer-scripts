@@ -14,19 +14,15 @@ from typer_scripts.core import (
     dry_run_option,  # pyright: ignore[reportAny]
     DryRunner,
     info,
-    new_run_mode_option,  # pyright: ignore[reportAny]
     run_mode_option,  # pyright: ignore[reportAny]
     set_obj_if_unset,
     task_title,
     warning,
-    run,
-    RunMode,
     dry_run_repr,
 )
 from typer_scripts.typer_tools import App
 
 app = App()
-MIGRATED_COMMANDS = {"fetch_dotfiles", "check_dotfiles_clean", "check_repos_clean"}
 
 
 @app.callback(invoke_without_command=True)
@@ -34,16 +30,13 @@ def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> Non
     """Check if your repositories are up-to-date and clean"""
     set_obj_if_unset(ctx, dry_run)
     if ctx.invoked_subcommand is None:
-        for name, command in get_commands_callbacks(app).items():
-            if name in MIGRATED_COMMANDS:
-                command(DryRunner() if ctx.obj else DefaultRunner())  # pyright: ignore[reportAny]
-            else:
-                command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
+        for command in get_commands_callbacks(app).values():
+            command(DryRunner() if ctx.obj else DefaultRunner())  # pyright: ignore[reportAny]
 
 
 @app.command()
 @task_title("Fetching dotfiles")
-def fetch_dotfiles(cmd_runner: Annotated[CmdRunner, new_run_mode_option]) -> None:
+def fetch_dotfiles(cmd_runner: Annotated[CmdRunner, run_mode_option]) -> None:
     """Fetch new changes for dotfiles."""
     _ = cmd_runner([*_get_git_dotfiles_command(), "fetch"])
 
@@ -52,7 +45,7 @@ def fetch_dotfiles(cmd_runner: Annotated[CmdRunner, new_run_mode_option]) -> Non
 @task_title("Checking dotfiles")
 @dry_run_repr
 def check_dotfiles_clean(
-    cmd_runner: Annotated[CmdRunner, new_run_mode_option],
+    cmd_runner: Annotated[CmdRunner, run_mode_option],
 ) -> None:
     """Check if dotfiles have unpublished work."""
     command = _get_git_dotfiles_command()
@@ -67,20 +60,20 @@ def check_dotfiles_clean(
 @app.command()
 @task_title("Fetching repos")
 def fetch_repos(
-    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+    cmd_runner: Annotated[CmdRunner, run_mode_option],
     repos: list[Path] | None = None,
 ) -> None:
     """Fetch new changes for repos."""
     sanitized_repos = sanitize_repos(repos)
     for repo in sanitized_repos:
-        _ = run(["git", "-C", repo, "fetch"], mode)
+        _ = cmd_runner(["git", "-C", repo, "fetch"])
 
 
 @app.command()
 @task_title("Checking git repos")
 @dry_run_repr
 def check_repos_clean(
-    cmd_runner: Annotated[CmdRunner, new_run_mode_option],
+    cmd_runner: Annotated[CmdRunner, run_mode_option],
     repos: list[Path] | None = None,
 ) -> None:
     """Check if repos have unpublished work."""
