@@ -30,7 +30,7 @@ exclude_lines = [
   'pass',
   'if TYPE_CHECKING.*',
 ]
-fail_under = 99
+fail_under = 100
 show_missing = true
 
 [build-system]

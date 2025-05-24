@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 from pathlib import Path
 from collections.abc import Iterable
 from subprocess import CalledProcessError, CompletedProcess
@@ -56,13 +55,6 @@ def unpushed_commits_output() -> CompletedProcess[bytes]:
 @fixture
 def set_repos_env(monkeypatch: MonkeyPatch, repos: list[Path]):
     monkeypatch.setenv("TYPER_SCRIPTS_REPOS", " ".join([str(repo) for repo in repos]))
-    yield
-
-
-@fixture
-def unset_repos_env(monkeypatch: MonkeyPatch):
-    if os.getenv("TYPER_SCRIPTS_REPOS"):
-        monkeypatch.delenv("TYPER_SCRIPTS_REPOS")
     yield
 
 
@@ -249,7 +241,6 @@ class TestFetchRepos:
         assert_repos_fetched(repos, run)
 
     @staticmethod
-    @mark.usefixtures("unset_repos_env")
     @mark.parametrize("args", [(), (None,), (list[Path]())])
     def test_fetch_exits_without_repos(
         args: tuple[(list[Path]) | None | list[Path]],
