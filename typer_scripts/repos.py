@@ -3,11 +3,13 @@ import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
 from sys import exit
+from typing import Annotated
 
-from domestobot import get_commands_callbacks, dry_run_option  # pyright: ignore[reportAny]
-from typer import Context, Argument, Exit
+from domestobot import get_commands_callbacks
+from typer import Context, Exit
 
 from typer_scripts.core import (
+    dry_run_option,
     error,
     info,
     run_mode_option,  # pyright: ignore[reportAny]
@@ -23,7 +25,7 @@ app = App()
 
 
 @app.callback(invoke_without_command=True)
-def repos(ctx: Context, dry_run: bool = dry_run_option) -> None:
+def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> None:
     """Check if your repositories are up-to-date and clean"""
     if ctx.invoked_subcommand is None:
         for command in get_commands_callbacks(app).values():
@@ -35,15 +37,17 @@ def repos(ctx: Context, dry_run: bool = dry_run_option) -> None:
 
 @app.command()
 @task_title("Fetching dotfiles")
-def fetch_dotfiles(mode: RunMode = run_mode_option) -> None:
+def fetch_dotfiles(mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT) -> None:
     """Fetch new changes for dotfiles."""
-    run([*_get_git_dotfiles_command(), "fetch"], mode)
+    _ = run([*_get_git_dotfiles_command(), "fetch"], mode)
 
 
 @app.command()
 @task_title("Checking dotfiles")
 @dry_run_repr
-def check_dotfiles_clean(mode: RunMode = run_mode_option) -> None:
+def check_dotfiles_clean(
+    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+) -> None:
     """Check if dotfiles have unpublished work."""
     command = _get_git_dotfiles_command()
     if _has_unsaved_changes(*command, mode=RunMode.DEFAULT) or _has_unpushed_commits(
@@ -57,7 +61,8 @@ def check_dotfiles_clean(mode: RunMode = run_mode_option) -> None:
 @app.command()
 @task_title("Fetching repos")
 def fetch_repos(
-    mode: RunMode = run_mode_option, repos: list[Path] | None = Argument(None)
+    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+    repos: list[Path] | None = None,
 ) -> None:
     """Fetch new changes for repos."""
     sanitized_repos = sanitize_repos(repos)
@@ -69,7 +74,8 @@ def fetch_repos(
 @task_title("Checking git repos")
 @dry_run_repr
 def check_repos_clean(
-    mode: RunMode = run_mode_option, repos: list[Path] | None = Argument(None)
+    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+    repos: list[Path] | None = None,
 ) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)

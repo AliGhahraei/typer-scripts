@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from _pytest.capture import CaptureResult
 from pytest import fixture, CaptureFixture, raises
-from typer import Exit, Option
+from typer import Exit
 from typer.testing import CliRunner
 
 from typer_scripts.core import CoreException
@@ -96,11 +96,11 @@ class TestTyperWithOptionDefault:
         app_ = App()
 
         @app_.callback(invoke_without_command=True)
-        def main(message: str = Option(callback_default)) -> None:
+        def main(message: str = callback_default) -> None:
             print(message)
 
         @app_.command()
-        def command_name(message: str = Option(command_default)):
+        def command_name(message: str = command_default) -> None:
             print(message)
 
         return app_
@@ -177,7 +177,7 @@ class TestTyperWithPositionalParamAndOptionDefault:
         app_ = App()
 
         @app_.command()
-        def command_name(nondefault: str, default: str = Option(command_default)):
+        def command_name(nondefault: str, default: str = command_default) -> None:
             print(nondefault)
             print(default)
 

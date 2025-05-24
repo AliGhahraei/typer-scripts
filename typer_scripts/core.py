@@ -5,7 +5,7 @@ from enum import Enum
 from functools import wraps
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Callable, Protocol
+from typing import Annotated, Callable, Protocol
 
 from rich.console import Console
 from typer import Exit, Option
@@ -19,7 +19,9 @@ class RunMode(str, Enum):
     DEFAULT = "DEFAULT"
 
 
-run_mode_option = Option(RunMode.DEFAULT, hidden=True)  # pyright: ignore[reportAny]
+DRY_RUN_HELP = "Print commands for every step instead of running them"
+dry_run_option = Option(help=DRY_RUN_HELP, show_default=False)  # pyright: ignore[reportAny]
+run_mode_option = Option(hidden=True)  # pyright: ignore[reportAny]
 
 
 def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
@@ -72,7 +74,9 @@ class DryRunnable[**P](Protocol):
 def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
     @wraps(f)
     def wrapper(
-        mode: RunMode = run_mode_option, *args: P.args, **kwargs: P.kwargs
+        mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> None:
         if mode is RunMode.DRY_RUN:
             print(f"function:{f.__name__}")  # type: ignore[attr-defined]

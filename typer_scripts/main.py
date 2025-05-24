@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import typer
+from typing import Annotated
 from domestobot import (
     get_app,
     get_root_dir,
     get_groups_callbacks,
-    dry_run_option,
 )
+from typer import Context
 
+from typer_scripts.core import dry_run_option  # pyright: ignore[reportAny]
 from typer_scripts.repos import app as repos_app
 from typer_scripts.typer_tools import App
 
@@ -26,7 +27,7 @@ add_config_typer(app, CONFIG_APPLY)
 
 
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context, dry_run: bool = dry_run_option):
+def main(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False):
     if ctx.invoked_subcommand is None:
         for group_name, callback in get_groups_callbacks(app, ctx).items():
             if group_name != CONFIG_APPLY:
