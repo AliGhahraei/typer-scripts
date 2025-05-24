@@ -26,37 +26,52 @@ run_mode_option = Option(hidden=True)  # pyright: ignore[reportAny]
 
 
 class CmdRunner(Protocol):
+    mode: RunMode
+
     def __call__(
         self, args: list[str | Path], capture_output: bool = False
     ) -> CompletedProcess[bytes]:  # pyright: ignore[reportReturnType]
         pass
 
 
-def dry_runner(
-    args: list[str | Path],
-    capture_output: bool = False,  # pyright: ignore[reportUnusedParameter] to subclass CmdRunner
-) -> CompletedProcess[bytes]:
-    dry_run_args = tuple(args)
-    print(dry_run_args)
-    return CompletedProcess(dry_run_args, 0, str(dry_run_args).encode())
+class DryRunner:
+    mode: RunMode
+
+    def __init__(self) -> None:
+        self.mode = RunMode.DRY_RUN
+
+    def __call__(
+        self,
+        args: list[str | Path],
+        capture_output: bool = False,
+    ) -> CompletedProcess[bytes]:
+        dry_run_args = tuple(args)
+        print(dry_run_args)
+        return CompletedProcess(dry_run_args, 0, str(dry_run_args).encode())
 
 
-def default_runner(
-    args: list[str | Path], capture_output: bool = False
-) -> CompletedProcess[bytes]:
-    return subprocess.run(args, check=True, capture_output=capture_output)
+class DefaultRunner:
+    mode: RunMode
+
+    def __init__(self) -> None:
+        self.mode = RunMode.DEFAULT
+
+    def __call__(
+        self, args: list[str | Path], capture_output: bool = False
+    ) -> CompletedProcess[bytes]:
+        return subprocess.run(args, check=True, capture_output=capture_output)
 
 
-class CmdRunnerParser(ParamType):
+class CmdRunnerGetter(ParamType):
     name: str = "CustomClass"
 
     def __init__(
         self,
-        default_runner: CmdRunner = default_runner,
-        dry_runner: CmdRunner = dry_runner,
+        default_runner: CmdRunner | None = None,
+        dry_runner: CmdRunner | None = None,
     ) -> None:
-        self.default_runner: CmdRunner = default_runner
-        self.dry_runner: CmdRunner = dry_runner
+        self.default_runner: CmdRunner = default_runner or DefaultRunner()
+        self.dry_runner: CmdRunner = dry_runner or DryRunner()
 
     @override
     def convert(
@@ -66,7 +81,9 @@ class CmdRunnerParser(ParamType):
 
 
 new_run_mode_option = Argument(  # pyright: ignore[reportAny]
-    hidden=True, click_type=CmdRunnerParser(), default_factory=lambda: ...
+    hidden=True,
+    click_type=CmdRunnerGetter(),
+    default_factory=lambda: ...,  # Default always passed to custom type's convert, so value is irrelevant
 )
 
 
@@ -111,7 +128,7 @@ def run(
     args: list[str | Path], mode: RunMode, capture_output: bool = False
 ) -> CompletedProcess[bytes]:
     if mode is RunMode.DRY_RUN:
-        return dry_runner(args, capture_output)
+        return DryRunner()(args, capture_output)
     else:
         return subprocess.run(args, check=True, capture_output=capture_output)
 
@@ -119,21 +136,26 @@ def run(
 class DryRunnable[**P](Protocol):
     __name__: str
 
-    def __call__(self, mode: RunMode = ..., *args: P.args, **kwargs: P.kwargs) -> None:
+    def __call__(
+        self,
+        cmd_runner: Annotated[CmdRunner, new_run_mode_option],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> None:
         pass
 
 
 def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
     @wraps(f)
     def wrapper(
-        mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+        cmd_runner: Annotated[CmdRunner, new_run_mode_option],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
-        if mode is RunMode.DRY_RUN:
+        if cmd_runner.mode is RunMode.DRY_RUN:
             print(f"function:{f.__name__}")  # type: ignore[attr-defined]
         else:
-            f(mode, *args, **kwargs)
+            f(cmd_runner, *args, **kwargs)
 
     return wrapper
 

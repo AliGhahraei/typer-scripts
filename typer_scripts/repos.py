@@ -10,9 +10,9 @@ from typer import Context
 
 from typer_scripts.core import (
     CmdRunner,
-    default_runner,
+    DefaultRunner,
     dry_run_option,  # pyright: ignore[reportAny]
-    dry_runner,
+    DryRunner,
     info,
     new_run_mode_option,  # pyright: ignore[reportAny]
     run_mode_option,  # pyright: ignore[reportAny]
@@ -26,7 +26,7 @@ from typer_scripts.core import (
 from typer_scripts.typer_tools import App
 
 app = App()
-MIGRATED_COMMANDS = {"fetch_dotfiles"}
+MIGRATED_COMMANDS = {"fetch_dotfiles", "check_dotfiles_clean", "check_repos_clean"}
 
 
 @app.callback(invoke_without_command=True)
@@ -36,7 +36,7 @@ def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> Non
     if ctx.invoked_subcommand is None:
         for name, command in get_commands_callbacks(app).items():
             if name in MIGRATED_COMMANDS:
-                command(dry_runner if ctx.obj else default_runner)  # pyright: ignore[reportAny]
+                command(DryRunner() if ctx.obj else DefaultRunner())  # pyright: ignore[reportAny]
             else:
                 command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
 
@@ -52,11 +52,13 @@ def fetch_dotfiles(cmd_runner: Annotated[CmdRunner, new_run_mode_option]) -> Non
 @task_title("Checking dotfiles")
 @dry_run_repr
 def check_dotfiles_clean(
-    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,  # pyright: ignore[reportUnusedParameter] used by decorator
+    cmd_runner: Annotated[CmdRunner, new_run_mode_option],
 ) -> None:
     """Check if dotfiles have unpublished work."""
     command = _get_git_dotfiles_command()
-    if _has_unsaved_changes(*command) or _has_unpushed_commits(*command):
+    if _has_unsaved_changes(cmd_runner, *command) or _has_unpushed_commits(
+        cmd_runner, *command
+    ):
         warning("Dotfiles were not clean")
     else:
         info("Dotfiles were clean!")
@@ -78,12 +80,14 @@ def fetch_repos(
 @task_title("Checking git repos")
 @dry_run_repr
 def check_repos_clean(
-    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,  # pyright: ignore[reportUnusedParameter] used by decorator
+    cmd_runner: Annotated[CmdRunner, new_run_mode_option],
     repos: list[Path] | None = None,
 ) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
-    if dirty_repos := [repo for repo in sanitized_repos if is_tree_dirty(repo)]:
+    if dirty_repos := [
+        repo for repo in sanitized_repos if is_tree_dirty(cmd_runner, repo)
+    ]:
         for repo in dirty_repos:
             warning(f"Repository in {repo} was not clean")
     else:
@@ -111,13 +115,14 @@ def _read_repos_env() -> list[Path]:
     return [Path(path) for path in env_repos.split(" ")]
 
 
-def is_tree_dirty(dir_: Path) -> bool:
+def is_tree_dirty(cmd_runner: CmdRunner, dir_: Path) -> bool:
     try:
         is_dirty = _has_unsaved_changes(
+            cmd_runner,
             "git",
             "-C",
             dir_,
-        ) or _has_unpushed_commits("git", "-C", dir_)
+        ) or _has_unpushed_commits(cmd_runner, "git", "-C", dir_)
     except CalledProcessError as e:
         if e.returncode == 128:
             exit(f"Not a git repository: {dir_}")
@@ -126,19 +131,17 @@ def is_tree_dirty(dir_: Path) -> bool:
     return is_dirty
 
 
-def _has_unsaved_changes(*command_prefix: str | Path) -> bool:
-    unsaved_changes = run(
+def _has_unsaved_changes(runner: CmdRunner, *command_prefix: str | Path) -> bool:
+    unsaved_changes = runner(
         [*command_prefix, "status", "--ignore-submodules", "--porcelain"],
-        RunMode.DEFAULT,
         capture_output=True,
     )
     return bool(_decode_stripped(unsaved_changes))
 
 
-def _has_unpushed_commits(*command_prefix: str | Path) -> bool:
-    unpushed_commits = run(
+def _has_unpushed_commits(runner: CmdRunner, *command_prefix: str | Path) -> bool:
+    unpushed_commits = runner(
         [*command_prefix, "log", "--branches", "--not", "--remotes", "--oneline"],
-        RunMode.DEFAULT,
         capture_output=True,
     )
     return bool(_decode_stripped(unpushed_commits))

@@ -8,7 +8,7 @@ from unittest.mock import Mock, call, patch
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
 from typer.testing import CliRunner
 
-from typer_scripts.core import RunMode
+from typer_scripts.core import CmdRunner, RunMode
 from typer_scripts.repos import (
     check_repos_clean,
     check_dotfiles_clean,
@@ -20,6 +20,13 @@ from typer_scripts.repos import (
 DARWIN = "Darwin"
 LINUX = "Linux"
 UNKNOWN_OS = "Unknown OS"
+
+
+@fixture
+def runner() -> Mock:
+    runner = Mock(spec=CmdRunner)
+    runner.mode = RunMode.DEFAULT
+    return runner
 
 
 @fixture
@@ -117,62 +124,62 @@ def get_unsaved_changes_args(repo: Path) -> list[str | Path]:
 
 class TestFetchDotfiles:
     @staticmethod
-    def test_fetch_shows_fetching_dotfiles_message(capsys: CaptureFixture[str]) -> None:
-        fetch_dotfiles(Mock())
+    def test_fetch_shows_fetching_dotfiles_message(
+        runner: Mock, capsys: CaptureFixture[str]
+    ) -> None:
+        fetch_dotfiles(runner)
 
         assert_stdout("Fetching dotfiles", capsys.readouterr().out)
 
     @staticmethod
     @mark.usefixtures("set_dotfiles_env")
-    def test_fetch_runs_fetch() -> None:
-        cmd_runner = Mock()
-        fetch_dotfiles(cmd_runner)
+    def test_fetch_runs_fetch(runner: Mock) -> None:
+        fetch_dotfiles(runner)
 
-        cmd_runner.assert_called_once_with(get_fetch_dotfiles_args())
+        runner.assert_called_once_with(get_fetch_dotfiles_args())
 
 
 @mark.usefixtures("set_dotfiles_env")
 class TestCheckDotfilesClean:
     @staticmethod
-    @mark.usefixtures("run")
-    def test_check_shows_checking_dotfiles_message(capsys: CaptureFixture[str]) -> None:
-        check_dotfiles_clean()
+    def test_check_shows_checking_dotfiles_message(
+        runner: Mock, capsys: CaptureFixture[str]
+    ) -> None:
+        check_dotfiles_clean(runner)
 
         assert_stdout("Checking dotfiles", capsys.readouterr().out)
 
     @staticmethod
     def test_check_shows_not_clean_on_dotfiles_with_unsaved_changes(
-        run: Mock,
+        runner: Mock,
         capsys: CaptureFixture[str],
         unsaved_changes_output: CompletedProcess[bytes],
     ) -> None:
-        run.side_effect = [unsaved_changes_output]
+        runner.side_effect = [unsaved_changes_output]
 
-        check_dotfiles_clean()
+        check_dotfiles_clean(runner)
 
-        run.assert_called_once_with(
+        runner.assert_called_once_with(
             [*get_dotfiles_prefix(), *get_command_prefix_for_unsaved_changes()],
-            RunMode.DEFAULT,
             capture_output=True,
         )
         assert_stdout("Dotfiles were not clean", capsys.readouterr().out)
 
     @staticmethod
     def test_check_shows_not_clean_on_dotfiles_with_unpushed_commits(
-        run: Mock,
+        runner: Mock,
         capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
         unpushed_commits_output: CompletedProcess[bytes],
     ) -> None:
-        run.side_effect = [clean_output, unpushed_commits_output]
+        runner.side_effect = [clean_output, unpushed_commits_output]
 
-        check_dotfiles_clean()
+        check_dotfiles_clean(runner)
 
-        run.assert_has_calls(
+        runner.assert_has_calls(
             [
                 call(
                     [*get_dotfiles_prefix(), *get_command_prefix_for_unsaved_changes()],
-                    RunMode.DEFAULT,
                     capture_output=True,
                 ),
                 call(
@@ -180,7 +187,6 @@ class TestCheckDotfilesClean:
                         *get_dotfiles_prefix(),
                         *get_command_prefix_for_unpushed_commits(),
                     ],
-                    RunMode.DEFAULT,
                     capture_output=True,
                 ),
             ]
@@ -189,19 +195,18 @@ class TestCheckDotfilesClean:
 
     @staticmethod
     def test_check_shows_clean_on_clean_dotfiles(
-        run: Mock,
+        runner: Mock,
         capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
     ) -> None:
-        run.side_effect = [clean_output] * 2
+        runner.side_effect = [clean_output] * 2
 
-        check_dotfiles_clean()
+        check_dotfiles_clean(runner)
 
-        run.assert_has_calls(
+        runner.assert_has_calls(
             [
                 call(
                     [*get_dotfiles_prefix(), *get_command_prefix_for_unsaved_changes()],
-                    RunMode.DEFAULT,
                     capture_output=True,
                 ),
                 call(
@@ -209,7 +214,6 @@ class TestCheckDotfilesClean:
                         *get_dotfiles_prefix(),
                         *get_command_prefix_for_unpushed_commits(),
                     ],
-                    RunMode.DEFAULT,
                     capture_output=True,
                 ),
             ]
@@ -258,26 +262,24 @@ class TestFetchRepos:
 class TestCheckReposClean:
     @staticmethod
     def test_check_says_clean_on_clean_repos(
-        run: Mock,
+        runner: Mock,
         repos: list[Path],
         capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
     ) -> None:
-        run.side_effect = [clean_output for _ in range(len(repos) * 2)]
+        runner.side_effect = [clean_output for _ in range(len(repos) * 2)]
 
-        check_repos_clean(repos=repos)
+        check_repos_clean(runner, repos=repos)
 
         for repo in repos:
-            run.assert_has_calls(
+            runner.assert_has_calls(
                 [
                     call(
                         get_unsaved_changes_args(repo),
-                        RunMode.DEFAULT,
                         capture_output=True,
                     ),
                     call(
                         get_unpushed_commits_args(repo),
-                        RunMode.DEFAULT,
                         capture_output=True,
                     ),
                 ]
@@ -286,44 +288,41 @@ class TestCheckReposClean:
 
     @staticmethod
     def test_check_says_not_clean_on_repos_with_unsaved_changes(
-        run: Mock,
+        runner: Mock,
         repo1: Path,
         capsys: CaptureFixture[str],
         unsaved_changes_output: CompletedProcess[bytes],
     ) -> None:
-        run.side_effect = [unsaved_changes_output]
+        runner.side_effect = [unsaved_changes_output]
 
-        check_repos_clean(repos=[repo1])
+        check_repos_clean(runner, repos=[repo1])
 
-        run.assert_called_once_with(
+        runner.assert_called_once_with(
             get_unsaved_changes_args(repo1),
-            RunMode.DEFAULT,
             capture_output=True,
         )
         assert_repo_not_clean(repo1, capsys.readouterr().out)
 
     @staticmethod
     def test_check_says_not_clean_on_repos_with_unpushed_commits(
-        run: Mock,
+        runner: Mock,
         repo1: Path,
         capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
         unpushed_commits_output: CompletedProcess[bytes],
     ) -> None:
-        run.side_effect = [clean_output, unpushed_commits_output]
+        runner.side_effect = [clean_output, unpushed_commits_output]
 
-        check_repos_clean(repos=[repo1])
+        check_repos_clean(runner, repos=[repo1])
 
-        run.assert_has_calls(
+        runner.assert_has_calls(
             [
                 call(
                     get_unsaved_changes_args(repo1),
-                    RunMode.DEFAULT,
                     capture_output=True,
                 ),
                 call(
                     get_unpushed_commits_args(repo1),
-                    RunMode.DEFAULT,
                     capture_output=True,
                 ),
             ]
@@ -332,44 +331,43 @@ class TestCheckReposClean:
 
     @staticmethod
     def test_check_exits_with_not_a_repo_error_on_invalid_repo(
-        run: Mock,
+        runner: Mock,
         repo1: Path,
     ) -> None:
-        run.side_effect = CalledProcessError(128, "command")
+        runner.side_effect = CalledProcessError(128, "command")
 
         with raises(SystemExit, match=f"Not a git repository: {repo1.expanduser()}"):
-            check_repos_clean(repos=[repo1])
+            check_repos_clean(runner, repos=[repo1])
 
-        run.assert_called_once_with(
+        runner.assert_called_once_with(
             get_unsaved_changes_args(repo1),
-            RunMode.DEFAULT,
             capture_output=True,
         )
 
     @staticmethod
-    def test_check_reraises_unhandled_error(run: Mock, repo1: Path) -> None:
+    def test_check_reraises_unhandled_error(runner: Mock, repo1: Path) -> None:
         exception = CalledProcessError(1, "command")
-        run.side_effect = exception
+        runner.side_effect = exception
         message = "Command 'command' returned non-zero exit status 1."
 
         with raises(CalledProcessError, match=message):
-            check_repos_clean(repos=[repo1])
+            check_repos_clean(runner, repos=[repo1])
 
-        run.assert_called_once_with(
-            get_unsaved_changes_args(repo1), RunMode.DEFAULT, capture_output=True
+        runner.assert_called_once_with(
+            get_unsaved_changes_args(repo1), capture_output=True
         )
 
     @staticmethod
     @mark.usefixtures("set_repos_env")
     def test_check_uses_env_as_default(
-        run: Mock,
+        runner: Mock,
         repos: list[Path],
         capsys: CaptureFixture[str],
         unsaved_changes_output: CompletedProcess[bytes],
     ) -> None:
-        run.return_value = unsaved_changes_output
+        runner.return_value = unsaved_changes_output
 
-        check_repos_clean()
+        check_repos_clean(runner)
 
         assert_repos_not_clean(repos, capsys.readouterr().out)
 

@@ -7,8 +7,8 @@ from typing import cast
 from typer import Context, Exit
 
 from typer_scripts.core import (
-    CmdRunnerParser,
-    default_runner,
+    CmdRunnerGetter,
+    DefaultRunner,
     err_console,
     run,
     RunMode,
@@ -19,7 +19,7 @@ from typer_scripts.core import (
 class TestDefaultRunner:
     @staticmethod
     def test_runner_executes_command() -> None:
-        result = default_runner(["echo", "hi"], capture_output=True)
+        result = DefaultRunner()(["echo", "hi"], capture_output=True)
         assert "hi" in result.stdout.decode()
 
 
@@ -30,7 +30,7 @@ class TestCmdRunnerParser:
         default_runner = Mock()
         dry_runner = Mock()
         assert (
-            CmdRunnerParser(default_runner, dry_runner).convert("", None, ctx)
+            CmdRunnerGetter(default_runner, dry_runner).convert("", None, ctx)
             == default_runner
         )
 
@@ -41,7 +41,7 @@ class TestCmdRunnerParser:
         dry_runner = Mock()
         ctx.obj = False
         assert (
-            CmdRunnerParser(default_runner, dry_runner).convert("", None, ctx)
+            CmdRunnerGetter(default_runner, dry_runner).convert("", None, ctx)
             == default_runner
         )
 
@@ -52,7 +52,7 @@ class TestCmdRunnerParser:
         dry_runner = Mock()
         ctx.obj = True
         assert (
-            CmdRunnerParser(default_runner, dry_runner).convert("", None, ctx)
+            CmdRunnerGetter(default_runner, dry_runner).convert("", None, ctx)
             == dry_runner
         )
 
