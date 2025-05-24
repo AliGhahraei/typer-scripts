@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
+from collections.abc import Iterable
 from subprocess import CalledProcessError, CompletedProcess
-from typing import List, Union, Iterable, Tuple, Any
 from unittest.mock import Mock, call, patch
 
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
@@ -34,7 +34,7 @@ def repo1() -> Path:
 
 
 @fixture
-def repos(repo1: Path) -> List[Path]:
+def repos(repo1: Path) -> list[Path]:
     return [repo1, Path("~/repo2")]
 
 
@@ -54,13 +54,13 @@ def unpushed_commits_output() -> CompletedProcess[bytes]:
 
 
 @fixture
-def set_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
+def set_repos_env(monkeypatch: MonkeyPatch, repos: list[Path]):
     monkeypatch.setenv("TYPER_SCRIPTS_REPOS", " ".join([str(repo) for repo in repos]))
     yield
 
 
 @fixture
-def unset_repos_env(monkeypatch: MonkeyPatch, repos: List[Path]):
+def unset_repos_env(monkeypatch: MonkeyPatch):
     if os.getenv("TYPER_SCRIPTS_REPOS"):
         monkeypatch.delenv("TYPER_SCRIPTS_REPOS")
     yield
@@ -99,31 +99,31 @@ def assert_repos_fetched(repos: Iterable[Path], run: Mock) -> None:
     )
 
 
-def get_dotfiles_prefix() -> List[str]:
+def get_dotfiles_prefix() -> list[str]:
     return ["git", "--git-dir=TEST_DOTFILES_REPO"]
 
 
-def get_fetch_dotfiles_args() -> List[str]:
+def get_fetch_dotfiles_args() -> list[str]:
     return [*get_dotfiles_prefix(), "fetch"]
 
 
-def get_git_fetch_args(repo: Path) -> List[Union[str, Path]]:
+def get_git_fetch_args(repo: Path) -> list[str | Path]:
     return ["git", "-C", repo.expanduser(), "fetch"]
 
 
-def get_command_prefix_for_unpushed_commits() -> List[str]:
+def get_command_prefix_for_unpushed_commits() -> list[str]:
     return ["log", "--branches", "--not", "--remotes", "--oneline"]
 
 
-def get_unpushed_commits_args(repo: Path) -> List[Union[str, Path]]:
+def get_unpushed_commits_args(repo: Path) -> list[str | Path]:
     return ["git", "-C", repo.expanduser(), *get_command_prefix_for_unpushed_commits()]
 
 
-def get_command_prefix_for_unsaved_changes() -> List[str]:
+def get_command_prefix_for_unsaved_changes() -> list[str]:
     return ["status", "--ignore-submodules", "--porcelain"]
 
 
-def get_unsaved_changes_args(repo: Path) -> List[Union[str, Path]]:
+def get_unsaved_changes_args(repo: Path) -> list[str | Path]:
     return ["git", "-C", repo.expanduser(), *get_command_prefix_for_unsaved_changes()]
 
 
@@ -233,32 +233,32 @@ class TestFetchRepos:
     @staticmethod
     @mark.usefixtures("run")
     def test_fetch_shows_fetching_repos_message(
-        repos: List[Path],
+        repos: list[Path],
         capsys: CaptureFixture[str],
     ) -> None:
-        fetch_repos(repos)
+        fetch_repos(repos=repos)
 
         assert_stdout("Fetching repos", capsys.readouterr().out)
 
     @staticmethod
-    def test_fetch_is_run_for_every_repo(run: Mock, repos: List[Path]) -> None:
-        fetch_repos(repos)
+    def test_fetch_is_run_for_every_repo(run: Mock, repos: list[Path]) -> None:
+        fetch_repos(repos=repos)
 
         assert_repos_fetched(repos, run)
 
     @staticmethod
     @mark.usefixtures("set_repos_env")
-    def test_fetch_uses_env_as_default(
-        run: Mock, repos: List[Path], monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_uses_env_as_default(run: Mock, repos: list[Path]) -> None:
         fetch_repos()
 
         assert_repos_fetched(repos, run)
 
     @staticmethod
     @mark.usefixtures("unset_repos_env")
-    @mark.parametrize("args", [(), (None,), (list())])
-    def test_fetch_exits_without_repos(args: Tuple[Any, ...], run: Mock) -> None:
+    @mark.parametrize("args", [(), (None,), (list[Path]())])
+    def test_fetch_exits_without_repos(
+        args: tuple[(list[Path]) | None | list[Path]],
+    ) -> None:
         message = (
             "Either the `repos` argument or the `TYPER_SCRIPTS_REPOS` "
             "env variable must be provided"
@@ -272,13 +272,13 @@ class TestCheckReposClean:
     @staticmethod
     def test_check_says_clean_on_clean_repos(
         run: Mock,
-        repos: List[Path],
+        repos: list[Path],
         capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
     ) -> None:
         run.side_effect = [clean_output for _ in range(len(repos) * 2)]
 
-        check_repos_clean(repos)
+        check_repos_clean(repos=repos)
 
         for repo in repos:
             run.assert_has_calls(
@@ -306,7 +306,7 @@ class TestCheckReposClean:
     ) -> None:
         run.side_effect = [unsaved_changes_output]
 
-        check_repos_clean([repo1])
+        check_repos_clean(repos=[repo1])
 
         run.assert_called_once_with(
             get_unsaved_changes_args(repo1),
@@ -325,7 +325,7 @@ class TestCheckReposClean:
     ) -> None:
         run.side_effect = [clean_output, unpushed_commits_output]
 
-        check_repos_clean([repo1])
+        check_repos_clean(repos=[repo1])
 
         run.assert_has_calls(
             [
@@ -351,7 +351,7 @@ class TestCheckReposClean:
         run.side_effect = CalledProcessError(128, "command")
 
         with raises(SystemExit, match=f"Not a git repository: {repo1.expanduser()}"):
-            check_repos_clean([repo1])
+            check_repos_clean(repos=[repo1])
 
         run.assert_called_once_with(
             get_unsaved_changes_args(repo1),
@@ -366,7 +366,7 @@ class TestCheckReposClean:
         message = "Command 'command' returned non-zero exit status 1."
 
         with raises(CalledProcessError, match=message):
-            check_repos_clean([repo1])
+            check_repos_clean(repos=[repo1])
 
         run.assert_called_once_with(
             get_unsaved_changes_args(repo1), RunMode.DEFAULT, capture_output=True
@@ -376,7 +376,7 @@ class TestCheckReposClean:
     @mark.usefixtures("set_repos_env")
     def test_check_uses_env_as_default(
         run: Mock,
-        repos: List[Path],
+        repos: list[Path],
         capsys: CaptureFixture[str],
         unsaved_changes_output: CompletedProcess[bytes],
     ) -> None:
@@ -392,7 +392,7 @@ class TestApp:
     @mark.usefixtures("set_repos_env", "set_dotfiles_env")
     def test_main_dry_run_prints_expected_output_and_exits(
         cli_runner: CliRunner,
-        repos: List[Path],
+        repos: list[Path],
     ) -> None:
         result = cli_runner.invoke(app, "--dry-run", catch_exceptions=False)
 
