@@ -39,9 +39,6 @@ def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> Non
                 command(dry_runner if ctx.obj else default_runner)  # pyright: ignore[reportAny]
             else:
                 command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
-    elif dry_run:
-        error("Cannot pass dry-run and a subcommand")
-        raise Exit(1)
 
 
 @app.command()
