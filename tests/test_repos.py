@@ -2,6 +2,7 @@
 from pathlib import Path
 from collections.abc import Iterable
 from subprocess import CalledProcessError, CompletedProcess
+from typing import Any
 from unittest.mock import Mock, call, patch
 
 from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
@@ -241,9 +242,9 @@ class TestFetchRepos:
         assert_repos_fetched(repos, run)
 
     @staticmethod
-    @mark.parametrize("args", [(), (None,), (list[Path]())])
+    @mark.parametrize("kwargs", [{}, {"repos": None}, {"repos": list[Path]()}])
     def test_fetch_exits_without_repos(
-        args: tuple[(list[Path]) | None | list[Path]],
+        kwargs: dict[str, Any],  # pyright: ignore[reportExplicitAny]
     ) -> None:
         message = (
             "Either the `repos` argument or the `TYPER_SCRIPTS_REPOS` "
@@ -251,7 +252,7 @@ class TestFetchRepos:
         )
 
         with raises(SystemExit, match=message):
-            fetch_repos(*args)
+            fetch_repos(**kwargs)  # pyright: ignore[reportAny]
 
 
 class TestCheckReposClean:

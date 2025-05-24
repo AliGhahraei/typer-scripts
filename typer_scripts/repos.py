@@ -9,7 +9,7 @@ from domestobot import get_commands_callbacks
 from typer import Context, Exit
 
 from typer_scripts.core import (
-    dry_run_option,
+    dry_run_option,  # pyright: ignore[reportAny]
     error,
     info,
     run_mode_option,  # pyright: ignore[reportAny]
@@ -46,13 +46,11 @@ def fetch_dotfiles(mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT) 
 @task_title("Checking dotfiles")
 @dry_run_repr
 def check_dotfiles_clean(
-    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,  # pyright: ignore[reportUnusedParameter] used by decorator
 ) -> None:
     """Check if dotfiles have unpublished work."""
     command = _get_git_dotfiles_command()
-    if _has_unsaved_changes(*command, mode=RunMode.DEFAULT) or _has_unpushed_commits(
-        *command, mode=RunMode.DEFAULT
-    ):
+    if _has_unsaved_changes(*command) or _has_unpushed_commits(*command):
         warning("Dotfiles were not clean")
     else:
         info("Dotfiles were clean!")
@@ -67,21 +65,19 @@ def fetch_repos(
     """Fetch new changes for repos."""
     sanitized_repos = sanitize_repos(repos)
     for repo in sanitized_repos:
-        run(["git", "-C", repo, "fetch"], mode)
+        _ = run(["git", "-C", repo, "fetch"], mode)
 
 
 @app.command()
 @task_title("Checking git repos")
 @dry_run_repr
 def check_repos_clean(
-    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,
+    mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT,  # pyright: ignore[reportUnusedParameter] used by decorator
     repos: list[Path] | None = None,
 ) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
-    if dirty_repos := [
-        repo for repo in sanitized_repos if is_tree_dirty(repo, RunMode.DEFAULT)
-    ]:
+    if dirty_repos := [repo for repo in sanitized_repos if is_tree_dirty(repo)]:
         for repo in dirty_repos:
             warning(f"Repository in {repo} was not clean")
     else:
@@ -109,11 +105,13 @@ def _read_repos_env() -> list[Path]:
     return [Path(path) for path in env_repos.split(" ")]
 
 
-def is_tree_dirty(dir_: Path, mode: RunMode) -> bool:
+def is_tree_dirty(dir_: Path) -> bool:
     try:
         is_dirty = _has_unsaved_changes(
-            "git", "-C", dir_, mode=mode
-        ) or _has_unpushed_commits("git", "-C", dir_, mode=mode)
+            "git",
+            "-C",
+            dir_,
+        ) or _has_unpushed_commits("git", "-C", dir_)
     except CalledProcessError as e:
         if e.returncode == 128:
             exit(f"Not a git repository: {dir_}")
@@ -122,7 +120,7 @@ def is_tree_dirty(dir_: Path, mode: RunMode) -> bool:
     return is_dirty
 
 
-def _has_unsaved_changes(*command_prefix: str | Path, mode: RunMode) -> bool:
+def _has_unsaved_changes(*command_prefix: str | Path) -> bool:
     unsaved_changes = run(
         [*command_prefix, "status", "--ignore-submodules", "--porcelain"],
         RunMode.DEFAULT,
@@ -131,7 +129,7 @@ def _has_unsaved_changes(*command_prefix: str | Path, mode: RunMode) -> bool:
     return bool(_decode_stripped(unsaved_changes))
 
 
-def _has_unpushed_commits(*command_prefix: str | Path, mode: RunMode) -> bool:
+def _has_unpushed_commits(*command_prefix: str | Path) -> bool:
     unpushed_commits = run(
         [*command_prefix, "log", "--branches", "--not", "--remotes", "--oneline"],
         RunMode.DEFAULT,

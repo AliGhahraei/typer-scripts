@@ -86,21 +86,13 @@ def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
     return wrapper
 
 
-class CoreException(Exception):
-    def __init__(self, message: str):
-        self.message: str = message
-        super().__init__(message)
-
-
-def catch_exceptions[**P](f: Callable[P, None]) -> Callable[P, None]:
+def catch_exceptions[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     @wraps(f)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
         except Exit:
             raise
-        except CoreException as e:
-            print(e.message, file=sys.stderr)
         except Exception:
             print("Unhandled error, printing traceback:", file=sys.stderr)
             raise
