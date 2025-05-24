@@ -117,18 +117,18 @@ def get_unsaved_changes_args(repo: Path) -> list[str | Path]:
 
 class TestFetchDotfiles:
     @staticmethod
-    @mark.usefixtures("run")
     def test_fetch_shows_fetching_dotfiles_message(capsys: CaptureFixture[str]) -> None:
-        fetch_dotfiles()
+        fetch_dotfiles(Mock())
 
         assert_stdout("Fetching dotfiles", capsys.readouterr().out)
 
     @staticmethod
     @mark.usefixtures("set_dotfiles_env")
-    def test_fetch_runs_fetch(run: Mock) -> None:
-        fetch_dotfiles()
+    def test_fetch_runs_fetch() -> None:
+        cmd_runner = Mock()
+        fetch_dotfiles(cmd_runner)
 
-        run.assert_called_once_with(get_fetch_dotfiles_args(), RunMode.DEFAULT)
+        cmd_runner.assert_called_once_with(get_fetch_dotfiles_args())
 
 
 @mark.usefixtures("set_dotfiles_env")

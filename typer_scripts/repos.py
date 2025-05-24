@@ -6,13 +6,17 @@ from sys import exit
 from typing import Annotated
 
 from domestobot import get_commands_callbacks
-from typer import Context, Exit
+from typer import Context
 
 from typer_scripts.core import (
+    CmdRunner,
+    default_runner,
     dry_run_option,  # pyright: ignore[reportAny]
-    error,
+    dry_runner,
     info,
+    new_run_mode_option,  # pyright: ignore[reportAny]
     run_mode_option,  # pyright: ignore[reportAny]
+    set_obj_if_unset,
     task_title,
     warning,
     run,
@@ -22,14 +26,19 @@ from typer_scripts.core import (
 from typer_scripts.typer_tools import App
 
 app = App()
+MIGRATED_COMMANDS = {"fetch_dotfiles"}
 
 
 @app.callback(invoke_without_command=True)
 def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> None:
     """Check if your repositories are up-to-date and clean"""
+    set_obj_if_unset(ctx, dry_run)
     if ctx.invoked_subcommand is None:
-        for command in get_commands_callbacks(app).values():
-            command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
+        for name, command in get_commands_callbacks(app).items():
+            if name in MIGRATED_COMMANDS:
+                command(dry_runner if ctx.obj else default_runner)  # pyright: ignore[reportAny]
+            else:
+                command(mode=RunMode.DRY_RUN if dry_run else RunMode.DEFAULT)
     elif dry_run:
         error("Cannot pass dry-run and a subcommand")
         raise Exit(1)
@@ -37,9 +46,9 @@ def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> Non
 
 @app.command()
 @task_title("Fetching dotfiles")
-def fetch_dotfiles(mode: Annotated[RunMode, run_mode_option] = RunMode.DEFAULT) -> None:
+def fetch_dotfiles(cmd_runner: Annotated[CmdRunner, new_run_mode_option]) -> None:
     """Fetch new changes for dotfiles."""
-    _ = run([*_get_git_dotfiles_command(), "fetch"], mode)
+    _ = cmd_runner([*_get_git_dotfiles_command(), "fetch"])
 
 
 @app.command()
