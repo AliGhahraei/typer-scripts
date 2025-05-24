@@ -5,16 +5,12 @@ from enum import Enum
 from functools import wraps
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Any, Callable, List, Union, TypeVar, cast
+from typing import Callable, Protocol
 
-from domestobot import dry_run_option
-from typer import style
+from rich.console import Console
+from typer import Option
 
-ArgsType = TypeVar("ArgsType")
-KwargsType = TypeVar("KwargsType")
-ReturnType = TypeVar("ReturnType")
-FunctionType = TypeVar("FunctionType", bound=Callable[..., Any])
-StatementType = TypeVar("StatementType", bound=Callable[..., None])
+console = Console()
 
 
 class RunMode(str, Enum):
@@ -22,37 +18,36 @@ class RunMode(str, Enum):
     DEFAULT = "DEFAULT"
 
 
-def task_title(message: str) -> Callable[[FunctionType], FunctionType]:
-    def decorator(f: FunctionType) -> FunctionType:
+run_mode_option = Option(RunMode.DEFAULT, hidden=True)  # pyright: ignore[reportAny]
+
+
+def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @wraps(f)
-        def wrapper(*args: ArgsType, **kwargs: KwargsType) -> ReturnType:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             title(message)
             return f(*args, **kwargs)
 
-        return cast(FunctionType, wrapper)
+        return wrapper
 
     return decorator
 
 
 def title(message: str) -> None:
     dotted_message = f"\n{message}..."
-    print(_colorize(dotted_message, "magenta", bold=True))
+    console.print(dotted_message, style="bold magenta")
 
 
 def info(message: str) -> None:
-    print(_colorize(message, "cyan"))
+    console.print(message, style="cyan")
 
 
 def warning(message: str) -> None:
-    print(_colorize(message, "yellow"))
-
-
-def _colorize(message: str, foreground: str, **kwargs: Any) -> str:
-    return style(message, foreground, **kwargs)
+    console.print(message, style="yellow")
 
 
 def run(
-    args: List[Union[str, Path]], mode: RunMode, capture_output: bool = False
+    args: list[str | Path], mode: RunMode, capture_output: bool = False
 ) -> CompletedProcess[bytes]:
     if mode is RunMode.DRY_RUN:
         dry_run_args = tuple(args)
@@ -62,28 +57,35 @@ def run(
         return subprocess.run(args, check=True, capture_output=capture_output)
 
 
-def dry_run_repr(f: StatementType) -> StatementType:
+class DryRunnable[**P](Protocol):
+    __name__: str
+
+    def __call__(self, mode: RunMode = ..., *args: P.args, **kwargs: P.kwargs) -> None:
+        pass
+
+
+def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
     @wraps(f)
     def wrapper(
-        *args: ArgsType, mode: RunMode = dry_run_option, **kwargs: KwargsType
+        mode: RunMode = run_mode_option, *args: P.args, **kwargs: P.kwargs
     ) -> None:
         if mode is RunMode.DRY_RUN:
             print(f"function:{f.__name__}")  # type: ignore[attr-defined]
         else:
-            f(*args, mode=mode, **kwargs)
+            f(mode, *args, **kwargs)
 
-    return cast(StatementType, wrapper)
+    return wrapper
 
 
 class CoreException(Exception):
     def __init__(self, message: str):
-        self.message = message
+        self.message: str = message
         super().__init__(message)
 
 
-def catch_exceptions(f: StatementType) -> StatementType:
+def catch_exceptions[**P](f: Callable[P, None]) -> Callable[P, None]:
     @wraps(f)
-    def wrapper(*args: ArgsType, **kwargs: KwargsType) -> None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         try:
             f(*args, **kwargs)
         except CoreException as e:
@@ -92,4 +94,4 @@ def catch_exceptions(f: StatementType) -> StatementType:
             print("Unhandled error, printing traceback:", file=sys.stderr)
             raise
 
-    return cast(StatementType, wrapper)
+    return wrapper

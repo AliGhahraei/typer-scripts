@@ -3,16 +3,22 @@ import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
 from sys import exit
-from typing import Union, List, Optional
 
-from domestobot import get_commands_callbacks, dry_run_option
-from typer import Context, Option, Argument
+from domestobot import get_commands_callbacks, dry_run_option  # pyright: ignore[reportAny]
+from typer import Context, Argument
 
-from typer_scripts.core import info, task_title, warning, run, RunMode, dry_run_repr
+from typer_scripts.core import (
+    info,
+    run_mode_option,  # pyright: ignore[reportAny]
+    task_title,
+    warning,
+    run,
+    RunMode,
+    dry_run_repr,
+)
 from typer_scripts.typer_tools import App
 
 app = App()
-run_mode_option = Option(RunMode.DEFAULT, hidden=True)
 
 
 @app.callback(invoke_without_command=True)
@@ -47,7 +53,7 @@ def check_dotfiles_clean(mode: RunMode = run_mode_option) -> None:
 @app.command()
 @task_title("Fetching repos")
 def fetch_repos(
-    repos: Optional[List[Path]] = Argument(None), mode: RunMode = run_mode_option
+    mode: RunMode = run_mode_option, repos: list[Path] | None = Argument(None)
 ) -> None:
     """Fetch new changes for repos."""
     sanitized_repos = sanitize_repos(repos)
@@ -59,7 +65,7 @@ def fetch_repos(
 @task_title("Checking git repos")
 @dry_run_repr
 def check_repos_clean(
-    repos: Optional[List[Path]] = Argument(None), mode: RunMode = run_mode_option
+    mode: RunMode = run_mode_option, repos: list[Path] | None = Argument(None)
 ) -> None:
     """Check if repos have unpublished work."""
     sanitized_repos = sanitize_repos(repos)
@@ -72,16 +78,16 @@ def check_repos_clean(
         info("Everything's clean!")
 
 
-def _get_git_dotfiles_command() -> List[str]:
+def _get_git_dotfiles_command() -> list[str]:
     return ["git", f"--git-dir={os.getenv('DOTFILES_REPO')}"]
 
 
-def sanitize_repos(repos_param: Optional[List[Path]]) -> List[Path]:
-    user_repos: List[Path] = repos_param if repos_param else _read_repos_env()
+def sanitize_repos(repos_param: list[Path] | None) -> list[Path]:
+    user_repos: list[Path] = repos_param if repos_param else _read_repos_env()
     return [path.expanduser() for path in user_repos]
 
 
-def _read_repos_env() -> List[Path]:
+def _read_repos_env() -> list[Path]:
     try:
         env_repos = os.environ["TYPER_SCRIPTS_REPOS"]
     except KeyError as e:
@@ -106,7 +112,7 @@ def is_tree_dirty(dir_: Path, mode: RunMode) -> bool:
     return is_dirty
 
 
-def _has_unsaved_changes(*command_prefix: Union[str, Path], mode: RunMode) -> bool:
+def _has_unsaved_changes(*command_prefix: str | Path, mode: RunMode) -> bool:
     unsaved_changes = run(
         [*command_prefix, "status", "--ignore-submodules", "--porcelain"],
         RunMode.DEFAULT,
@@ -115,7 +121,7 @@ def _has_unsaved_changes(*command_prefix: Union[str, Path], mode: RunMode) -> bo
     return bool(_decode_stripped(unsaved_changes))
 
 
-def _has_unpushed_commits(*command_prefix: Union[str, Path], mode: RunMode) -> bool:
+def _has_unpushed_commits(*command_prefix: str | Path, mode: RunMode) -> bool:
     unpushed_commits = run(
         [*command_prefix, "log", "--branches", "--not", "--remotes", "--oneline"],
         RunMode.DEFAULT,
