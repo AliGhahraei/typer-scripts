@@ -9,7 +9,7 @@
       "automerge": true
     },
     {
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "pinDigest", "digest", "lockFileMaintenance", "rollback", "bump", "replacement"],
+      "matchFileNames": ["**"],
       "rangeStrategy": "bump"
     }
   ]
