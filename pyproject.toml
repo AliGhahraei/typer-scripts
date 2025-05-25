@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "typer_scripts"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.13.3"
 domestobot = "^0.1.1"
 
 [tool.poetry.group.dev.dependencies]
