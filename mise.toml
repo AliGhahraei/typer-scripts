@@ -36,7 +36,7 @@ run = [
 [tasks.check]
 depends = ['check_lint', 'check_format', 'check_typing', 'test']
 
-[tasks.build]
+[tasks.prepare]
 depends = ['fix']
 run = 'mise check' # Adding to depends could make it run before setup finishes
 
