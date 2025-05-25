@@ -22,7 +22,7 @@ local_ci = 'act'
 
 [tasks.setup]
 depends = 'basic_setup'
-run = "mise generate git-pre-commit -t check -w "
+run = "mise generate git-pre-commit --hook pre-push -t check -w "
 
 [tasks.fix]
 depends = ['fix_lint', 'fix_format']
