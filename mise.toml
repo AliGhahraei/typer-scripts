@@ -16,8 +16,13 @@ fix_format = '{{vars.format_prefix}}'
 
 check_typing = '{{vars.run_prefix}} basedpyright'
 
-setup = "poetry install"
+basic_setup = "poetry install"
+
 local_ci = 'act'
+
+[tasks.setup]
+depends = 'basic_setup'
+run = "mise generate git-pre-commit -t check -w "
 
 [tasks.fix]
 depends = ['fix_lint', 'fix_format']
@@ -36,7 +41,7 @@ depends = ['fix']
 run = 'mise check' # Adding to depends could make it run before setup finishes
 
 [tasks.ci]
-depends = ['setup']
+depends = ['basic_setup']
 run = 'mise check' # Adding to depends could make it run before setup finishes
 
 [tools]
