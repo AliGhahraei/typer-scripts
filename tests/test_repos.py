@@ -175,7 +175,10 @@ class TestCheckDotfilesClean:
         runner.assert_has_calls(
             [
                 call(
-                    [*get_dotfiles_clean_prefix(), *get_command_prefix_for_unsaved_changes()],
+                    [
+                        *get_dotfiles_clean_prefix(),
+                        *get_command_prefix_for_unsaved_changes(),
+                    ],
                     capture_output=True,
                 ),
                 call(
@@ -202,7 +205,10 @@ class TestCheckDotfilesClean:
         runner.assert_has_calls(
             [
                 call(
-                    [*get_dotfiles_clean_prefix(), *get_command_prefix_for_unsaved_changes()],
+                    [
+                        *get_dotfiles_clean_prefix(),
+                        *get_command_prefix_for_unsaved_changes(),
+                    ],
                     capture_output=True,
                 ),
                 call(
