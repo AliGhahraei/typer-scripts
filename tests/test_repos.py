@@ -86,6 +86,10 @@ def assert_repos_fetched(repos: Iterable[Path], runner: Mock) -> None:
     runner.assert_has_calls([call(get_git_fetch_args(repo)) for repo in repos])
 
 
+def get_dotfiles_clean_prefix() -> list[str]:
+    return [*get_dotfiles_prefix(), f"--work-tree={Path.home()}"]
+
+
 def get_dotfiles_prefix() -> list[str]:
     return ["git", "--git-dir=TEST_DOTFILES_REPO"]
 
@@ -152,7 +156,7 @@ class TestCheckDotfilesClean:
         check_dotfiles_clean(runner)
 
         runner.assert_called_once_with(
-            [*get_dotfiles_prefix(), *get_command_prefix_for_unsaved_changes()],
+            [*get_dotfiles_clean_prefix(), *get_command_prefix_for_unsaved_changes()],
             capture_output=True,
         )
         assert_stdout("Dotfiles were not clean", capsys.readouterr().out)
@@ -171,12 +175,12 @@ class TestCheckDotfilesClean:
         runner.assert_has_calls(
             [
                 call(
-                    [*get_dotfiles_prefix(), *get_command_prefix_for_unsaved_changes()],
+                    [*get_dotfiles_clean_prefix(), *get_command_prefix_for_unsaved_changes()],
                     capture_output=True,
                 ),
                 call(
                     [
-                        *get_dotfiles_prefix(),
+                        *get_dotfiles_clean_prefix(),
                         *get_command_prefix_for_unpushed_commits(),
                     ],
                     capture_output=True,
@@ -198,12 +202,12 @@ class TestCheckDotfilesClean:
         runner.assert_has_calls(
             [
                 call(
-                    [*get_dotfiles_prefix(), *get_command_prefix_for_unsaved_changes()],
+                    [*get_dotfiles_clean_prefix(), *get_command_prefix_for_unsaved_changes()],
                     capture_output=True,
                 ),
                 call(
                     [
-                        *get_dotfiles_prefix(),
+                        *get_dotfiles_clean_prefix(),
                         *get_command_prefix_for_unpushed_commits(),
                     ],
                     capture_output=True,

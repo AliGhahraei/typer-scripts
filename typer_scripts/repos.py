@@ -48,7 +48,7 @@ def check_dotfiles_clean(
     cmd_runner: Annotated[CmdRunner, run_mode_option],
 ) -> None:
     """Check if dotfiles have unpublished work."""
-    command = _get_git_dotfiles_command()
+    command = [*_get_git_dotfiles_command(), f"--work-tree={Path.home()}"]
     if _has_unsaved_changes(cmd_runner, *command) or _has_unpushed_commits(
         cmd_runner, *command
     ):
