@@ -1,7 +1,7 @@
 import os
 from unittest import mock
-from pytest import fixture
 
+from pytest import fixture
 from typer.testing import CliRunner
 
 
@@ -13,4 +13,4 @@ def clean_initial_envvars():
 
 @fixture
 def cli_runner() -> CliRunner:
-    return CliRunner(mix_stderr=False)
+    return CliRunner()
