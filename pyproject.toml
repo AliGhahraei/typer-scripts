@@ -1,15 +1,23 @@
-[tool.poetry]
+[project]
 name = "typer-scripts"
 version = "0.1.0"
 description = ""
-authors = ["Ali Ghahraei <aligf94@gmail.com>"]
+authors = [
+  {name = "Ali Ghahraei", email = "aligf94@gmail.com"}
+]
 license = "GPLv3"
 readme = "README.md"
-packages = [{include = "typer_scripts"}]
+requires-python = ">=3.13.3,<4.0"
+dependencies = [
+  "domestobot (>=0.1.2,<0.2.0)"
+]
 
-[tool.poetry.dependencies]
-python = "^3.13.3"
-domestobot = "^0.1.1"
+[project.scripts]
+dbot = 'typer_scripts.main:app'
+
+
+[tool.poetry]
+packages = [{include = "typer_scripts"}]
 
 [tool.poetry.group.dev.dependencies]
 typer = "^0.16.0"
@@ -18,8 +26,6 @@ ruff = "^0.11.11"
 coverage = "^7.8.2"
 basedpyright = "^1.29.2"
 
-[tool.poetry.scripts]
-dbot = 'typer_scripts.main:app'
 
 [tool.coverage.run]
 branch = true
@@ -34,6 +40,7 @@ exclude_lines = [
 ]
 fail_under = 100
 show_missing = true
+
 
 [build-system]
 requires = ["poetry-core"]
