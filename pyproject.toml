@@ -9,7 +9,7 @@ license = "GPLv3"
 readme = "README.md"
 requires-python = ">=3.13.3,<4.0"
 dependencies = [
-  "domestobot (>=0.1.2,<0.2.0)"
+  "domestobot @ git+https://github.com/AliGhahraei/domestobot"
 ]
 
 [project.scripts]
