@@ -155,7 +155,7 @@ xdg = ">=6.0.0,<7.0.0"
 type = "git"
 url = "https://github.com/AliGhahraei/domestobot"
 reference = "HEAD"
-resolved_reference = "b128d2f5c0b7f5f3cf780c362da5314f446578b3"
+resolved_reference = "4c1f08658d0c54ce02c226947aec34a99c4aa57e"
 
 [[package]]
 name = "iniconfig"
