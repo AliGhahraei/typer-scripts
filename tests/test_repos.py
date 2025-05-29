@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-from pathlib import Path
 from collections.abc import Iterable
+from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
 from typing import Any
 from unittest.mock import Mock, call
 
-from pytest import CaptureFixture, fixture, raises, mark, MonkeyPatch
+from pytest import CaptureFixture, MonkeyPatch, fixture, mark, raises
 from typer.testing import CliRunner
 
-from typer_scripts.core import CmdRunner, RunMode
+from typer_scripts.core import CmdRunner, RunningMode
 from typer_scripts.repos import (
-    check_repos_clean,
-    check_dotfiles_clean,
-    fetch_repos,
-    fetch_dotfiles,
     app,
+    check_dotfiles_clean,
+    check_repos_clean,
+    fetch_dotfiles,
+    fetch_repos,
 )
 
 DARWIN = "Darwin"
@@ -25,7 +25,7 @@ UNKNOWN_OS = "Unknown OS"
 @fixture
 def runner() -> Mock:
     runner = Mock(spec=CmdRunner)
-    runner.mode = RunMode.DEFAULT
+    runner.mode = RunningMode.DEFAULT
     return runner
 
 

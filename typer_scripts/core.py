@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import subprocess
 import sys
-from enum import Enum
+from enum import Enum, auto
 from functools import wraps
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -16,17 +16,17 @@ console = Console()
 err_console = Console(stderr=True)
 
 
-class RunMode(str, Enum):
-    DRY_RUN = "DRY_RUN"
-    DEFAULT = "DEFAULT"
-
-
 DRY_RUN_HELP = "Print commands for every step instead of running them"
 dry_run_option = Option(help=DRY_RUN_HELP, show_default=False)  # pyright: ignore[reportAny]
 
 
+class RunningMode(str, Enum):
+    DRY_RUN = auto()
+    DEFAULT = auto()
+
+
 class CmdRunner(Protocol):
-    mode: RunMode
+    mode: RunningMode
 
     def __call__(
         self, args: list[str | Path], capture_output: bool = False
@@ -35,7 +35,7 @@ class CmdRunner(Protocol):
 
 
 class CmdRunnerContext(Context, CmdRunner):
-    mode: RunMode = RunMode.DEFAULT
+    mode: RunningMode = RunningMode.DEFAULT
     dry_runner: CmdRunner
     default_runner: CmdRunner
 
@@ -55,7 +55,7 @@ class CmdRunnerContext(Context, CmdRunner):
         self, args: list[str | Path], capture_output: bool = False
     ) -> CompletedProcess[bytes]:
         dry_run: bool = bool(self.obj)  # pyright: ignore[reportAny]
-        self.mode = RunMode.DRY_RUN if dry_run else RunMode.DEFAULT
+        self.mode = RunningMode.DRY_RUN if dry_run else RunningMode.DEFAULT
         runner = self.dry_runner if dry_run else self.default_runner
         return runner(args, capture_output=capture_output)
 
@@ -81,10 +81,10 @@ def make_runner_callback_decorator(
 
 
 class DryRunner:
-    mode: RunMode
+    mode: RunningMode
 
     def __init__(self) -> None:
-        self.mode = RunMode.DRY_RUN
+        self.mode = RunningMode.DRY_RUN
 
     def __call__(
         self,
@@ -97,10 +97,10 @@ class DryRunner:
 
 
 class DefaultRunner:
-    mode: RunMode
+    mode: RunningMode
 
     def __init__(self) -> None:
-        self.mode = RunMode.DEFAULT
+        self.mode = RunningMode.DEFAULT
 
     def __call__(
         self, args: list[str | Path], capture_output: bool = False
@@ -164,7 +164,7 @@ def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
-        if cmd_runner.mode is RunMode.DRY_RUN:
+        if cmd_runner.mode is RunningMode.DRY_RUN:
             print(f"function:{f.__name__}")  # type: ignore[attr-defined]
         else:
             f(cmd_runner, *args, **kwargs)

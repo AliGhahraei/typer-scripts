@@ -8,7 +8,7 @@ from typer_scripts.core import (
     CmdRunner,
     CmdRunnerContext,
     DefaultRunner,
-    RunMode,
+    RunningMode,
     err_console,
     set_runner_if_unset,
 )
@@ -57,7 +57,7 @@ class TestCmdRunnerContext:
         _ = ctx(["a"])
 
         default_runner.assert_called_with(["a"], capture_output=False)
-        assert ctx.mode == RunMode.DEFAULT
+        assert ctx.mode == RunningMode.DEFAULT
 
     @staticmethod
     def test_runner_runs_in_dry_run_mode() -> None:
@@ -69,4 +69,4 @@ class TestCmdRunnerContext:
         _ = ctx(["a"])
 
         dry_runner.assert_called_with(["a"], capture_output=False)
-        assert ctx.mode == RunMode.DRY_RUN
+        assert ctx.mode == RunningMode.DRY_RUN
