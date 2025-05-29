@@ -5,11 +5,12 @@ from enum import Enum
 from functools import wraps
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Annotated, Callable, Protocol, override
+from typing import Callable, Protocol, override
 
-from click import ParamType, Parameter, Context as ClickContext
 from rich.console import Console
-from typer import Argument, Context, Exit, Option
+from typer import Context, Exit, Option
+from typer.core import TyperCommand, TyperGroup
+from typer.models import CommandFunctionType
 
 console = Console()
 err_console = Console(stderr=True)
@@ -31,6 +32,52 @@ class CmdRunner(Protocol):
         self, args: list[str | Path], capture_output: bool = False
     ) -> CompletedProcess[bytes]:  # pyright: ignore[reportReturnType]
         pass
+
+
+class CmdRunnerContext(Context, CmdRunner):
+    mode: RunMode = RunMode.DEFAULT
+    dry_runner: CmdRunner
+    default_runner: CmdRunner
+
+    def __init__(
+        self,
+        *args: object,
+        dry_runner: CmdRunner | None = None,
+        default_runner: CmdRunner | None = None,
+        **kwargs: object,
+    ) -> None:
+        self.dry_runner = dry_runner or DryRunner()
+        self.default_runner = default_runner or DefaultRunner()
+        super().__init__(*args, **kwargs)  # pyright: ignore[reportArgumentType]
+
+    @override
+    def __call__(
+        self, args: list[str | Path], capture_output: bool = False
+    ) -> CompletedProcess[bytes]:
+        dry_run: bool = bool(self.obj)  # pyright: ignore[reportAny]
+        self.mode = RunMode.DRY_RUN if dry_run else RunMode.DEFAULT
+        runner = self.dry_runner if dry_run else self.default_runner
+        return runner(args, capture_output=capture_output)
+
+
+class RunnerGroup(TyperGroup):
+    context_class: type[Context] = CmdRunnerContext  # pyright: ignore[reportIncompatibleVariableOverride] (invariant override)
+
+
+class RunnerCommand(TyperCommand):
+    context_class: type[Context] = CmdRunnerContext  # pyright: ignore[reportIncompatibleVariableOverride] (invariant override)
+
+
+def make_runner_callback_decorator(
+    callback: Callable[..., Callable[[CommandFunctionType], CommandFunctionType]],
+) -> Callable[..., Callable[[CommandFunctionType], CommandFunctionType]]:
+    @wraps(callback)
+    def runner_callback(
+        *args: object, **kwargs: object
+    ) -> Callable[[CommandFunctionType], CommandFunctionType]:
+        return callback(*args, **dict(cls=RunnerGroup) | kwargs)
+
+    return runner_callback
 
 
 class DryRunner:
@@ -61,32 +108,7 @@ class DefaultRunner:
         return subprocess.run(args, check=True, capture_output=capture_output)
 
 
-class CmdRunnerGetter(ParamType):
-    name: str = "CustomClass"
-
-    def __init__(
-        self,
-        default_runner: CmdRunner | None = None,
-        dry_runner: CmdRunner | None = None,
-    ) -> None:
-        self.default_runner: CmdRunner = default_runner or DefaultRunner()
-        self.dry_runner: CmdRunner = dry_runner or DryRunner()
-
-    @override
-    def convert(
-        self, value: str, param: Parameter | None, ctx: ClickContext | None
-    ) -> CmdRunner:
-        return self.dry_runner if ctx and ctx.obj else self.default_runner  # pyright: ignore[reportAny]
-
-
-run_mode_option = Argument(  # pyright: ignore[reportAny]
-    hidden=True,
-    click_type=CmdRunnerGetter(),
-    default_factory=lambda: ...,  # Default always passed to custom type's convert, so value is irrelevant
-)
-
-
-def set_obj_if_unset(ctx: Context, dry_run: bool) -> None:
+def set_runner_if_unset(ctx: Context, dry_run: bool) -> None:
     if dry_run:
         if ctx.obj:  # pyright: ignore[reportAny]
             error("Cannot set dry-run more than once")
@@ -128,7 +150,7 @@ class DryRunnable[**P](Protocol):
 
     def __call__(
         self,
-        cmd_runner: Annotated[CmdRunner, run_mode_option],
+        cmd_runner: CmdRunnerContext,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
@@ -138,7 +160,7 @@ class DryRunnable[**P](Protocol):
 def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
     @wraps(f)
     def wrapper(
-        cmd_runner: Annotated[CmdRunner, run_mode_option],
+        cmd_runner: CmdRunnerContext,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:

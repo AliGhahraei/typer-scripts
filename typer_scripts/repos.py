@@ -3,49 +3,60 @@ import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
 from sys import exit
-from typing import Annotated
+from typing import Annotated, Callable
 
 from domestobot import get_commands_callbacks
-from typer import Context
+from typer.models import CommandFunctionType
 
 from typer_scripts.core import (
     CmdRunner,
-    DefaultRunner,
+    CmdRunnerContext,
+    RunnerCommand,
     dry_run_option,  # pyright: ignore[reportAny]
-    DryRunner,
+    dry_run_repr,
     info,
-    run_mode_option,  # pyright: ignore[reportAny]
-    set_obj_if_unset,
+    make_runner_callback_decorator,
+    set_runner_if_unset,
     task_title,
     warning,
-    dry_run_repr,
 )
 from typer_scripts.typer_tools import App
 
 app = App()
 
 
-@app.callback(invoke_without_command=True)
-def repos(ctx: Context, dry_run: Annotated[bool, dry_run_option] = False) -> None:
+runner_callback = make_runner_callback_decorator(app.callback)
+
+
+def runner_command(
+    *args: object, **kwargs: object
+) -> Callable[[CommandFunctionType], CommandFunctionType]:
+    return app.command(*args, **dict(cls=RunnerCommand) | kwargs)  # pyright: ignore[reportArgumentType]
+
+
+@runner_callback(invoke_without_command=True)
+def repos(
+    ctx: CmdRunnerContext, dry_run: Annotated[bool, dry_run_option] = False
+) -> None:
     """Check if your repositories are up-to-date and clean"""
-    set_obj_if_unset(ctx, dry_run)
+    set_runner_if_unset(ctx, dry_run)
     if ctx.invoked_subcommand is None:
-        for command in get_commands_callbacks(app).values():
-            command(DryRunner() if ctx.obj else DefaultRunner())  # pyright: ignore[reportAny]
+        for command in get_commands_callbacks(app, ctx).values():
+            command()
 
 
-@app.command()
+@runner_command()
 @task_title("Fetching dotfiles")
-def fetch_dotfiles(cmd_runner: Annotated[CmdRunner, run_mode_option]) -> None:
+def fetch_dotfiles(cmd_runner: CmdRunnerContext) -> None:
     """Fetch new changes for dotfiles."""
     _ = cmd_runner([*_get_git_dotfiles_command(), "fetch"])
 
 
-@app.command()
+@runner_command()
 @task_title("Checking dotfiles")
 @dry_run_repr
 def check_dotfiles_clean(
-    cmd_runner: Annotated[CmdRunner, run_mode_option],
+    cmd_runner: CmdRunnerContext,
 ) -> None:
     """Check if dotfiles have unpublished work."""
     command = [*_get_git_dotfiles_command(), f"--work-tree={Path.home()}"]
@@ -57,10 +68,10 @@ def check_dotfiles_clean(
         info("Dotfiles were clean!")
 
 
-@app.command()
+@runner_command()
 @task_title("Fetching repos")
 def fetch_repos(
-    cmd_runner: Annotated[CmdRunner, run_mode_option],
+    cmd_runner: CmdRunnerContext,
     repos: list[Path] | None = None,
 ) -> None:
     """Fetch new changes for repos."""
@@ -69,11 +80,11 @@ def fetch_repos(
         _ = cmd_runner(["git", "-C", repo, "fetch"])
 
 
-@app.command()
+@runner_command()
 @task_title("Checking git repos")
 @dry_run_repr
 def check_repos_clean(
-    cmd_runner: Annotated[CmdRunner, run_mode_option],
+    cmd_runner: CmdRunnerContext,
     repos: list[Path] | None = None,
 ) -> None:
     """Check if repos have unpublished work."""

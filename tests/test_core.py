@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 from unittest.mock import Mock
-from pytest import raises
 
-from typer import Context, Exit
+from pytest import raises
+from typer import Exit
 
 from typer_scripts.core import (
-    CmdRunnerGetter,
+    CmdRunner,
+    CmdRunnerContext,
     DefaultRunner,
+    RunMode,
     err_console,
-    set_obj_if_unset,
+    set_runner_if_unset,
 )
 
 
@@ -19,53 +21,19 @@ class TestDefaultRunner:
         assert "hi" in result.stdout.decode()
 
 
-class TestCmdRunnerParser:
-    @staticmethod
-    def test_convert_returns_default_runner_when_ctx_is_none() -> None:
-        ctx = None
-        default_runner = Mock()
-        dry_runner = Mock()
-        assert (
-            CmdRunnerGetter(default_runner, dry_runner).convert("", None, ctx)
-            == default_runner
-        )
-
-    @staticmethod
-    def test_convert_returns_default_runner_when_ctx_obj_is_false() -> None:
-        ctx = Mock(spec=Context)
-        default_runner = Mock()
-        dry_runner = Mock()
-        ctx.obj = False
-        assert (
-            CmdRunnerGetter(default_runner, dry_runner).convert("", None, ctx)
-            == default_runner
-        )
-
-    @staticmethod
-    def test_convert_returns_dry_runner_when_ctx_obj_is_true() -> None:
-        ctx = Mock(spec=Context)
-        default_runner = Mock()
-        dry_runner = Mock()
-        ctx.obj = True
-        assert (
-            CmdRunnerGetter(default_runner, dry_runner).convert("", None, ctx)
-            == dry_runner
-        )
-
-
 class TestSetObjIfUnset:
     @staticmethod
     def test_sets_obj_if_unset() -> None:
         ctx = Mock()
         ctx.obj = None
-        set_obj_if_unset(ctx, True)
+        set_runner_if_unset(ctx, True)
         assert ctx.obj  # pyright: ignore[reportAny]
 
     @staticmethod
     def test_does_not_set_obj_if_value_is_false() -> None:
         ctx = Mock()
         ctx.obj = True
-        set_obj_if_unset(ctx, False)
+        set_runner_if_unset(ctx, False)
         assert ctx.obj  # pyright: ignore[reportAny]
 
     @staticmethod
@@ -75,6 +43,30 @@ class TestSetObjIfUnset:
         err_console.begin_capture()
         try:
             with raises(Exit):
-                set_obj_if_unset(ctx, True)
+                set_runner_if_unset(ctx, True)
         finally:
             assert "Cannot set dry-run more than once" in err_console.end_capture()
+
+
+class TestCmdRunnerContext:
+    @staticmethod
+    def test_runner_runs_in_default_mode_by_default() -> None:
+        default_runner = Mock(spec_set=CmdRunner)
+        ctx = CmdRunnerContext(Mock(), default_runner=default_runner)
+
+        _ = ctx(["a"])
+
+        default_runner.assert_called_with(["a"], capture_output=False)
+        assert ctx.mode == RunMode.DEFAULT
+
+    @staticmethod
+    def test_runner_runs_in_dry_run_mode() -> None:
+        dry_runner = Mock(spec_set=CmdRunner)
+        ctx = CmdRunnerContext(Mock(), dry_runner=dry_runner)
+
+        dry_run = True
+        ctx.obj = dry_run
+        _ = ctx(["a"])
+
+        dry_runner.assert_called_with(["a"], capture_output=False)
+        assert ctx.mode == RunMode.DRY_RUN
