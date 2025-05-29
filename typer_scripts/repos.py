@@ -16,7 +16,7 @@ from typer_scripts.core import (
     dry_run_repr,
     info,
     make_runner_callback_decorator,
-    set_runner_if_unset,
+    set_obj_to_running_mode_if_unset,
     task_title,
     warning,
 )
@@ -39,7 +39,7 @@ def repos(
     ctx: CmdRunnerContext, dry_run: Annotated[bool, dry_run_option] = False
 ) -> None:
     """Check if your repositories are up-to-date and clean"""
-    set_runner_if_unset(ctx, dry_run)
+    set_obj_to_running_mode_if_unset(ctx, dry_run=dry_run)
     if ctx.invoked_subcommand is None:
         for command in get_commands_callbacks(app, ctx).values():
             command()

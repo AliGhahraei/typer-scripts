@@ -11,7 +11,7 @@ from typer_scripts.core import (
     CmdRunnerContext,
     dry_run_option,  # pyright: ignore[reportAny]
     make_runner_callback_decorator,
-    set_runner_if_unset,
+    set_obj_to_running_mode_if_unset,
 )
 from typer_scripts.repos import app as repos_app
 from typer_scripts.typer_tools import App
@@ -37,7 +37,7 @@ runner_callback = make_runner_callback_decorator(app.callback)
 
 @runner_callback(invoke_without_command=True)
 def main(ctx: CmdRunnerContext, dry_run: Annotated[bool, dry_run_option] = False):
-    set_runner_if_unset(ctx, dry_run)
+    set_obj_to_running_mode_if_unset(ctx, dry_run=dry_run)
     if ctx.invoked_subcommand is None:
         for group_name, callback in get_groups_callbacks(app, ctx).items():
             if group_name == REPOS:

@@ -54,9 +54,10 @@ class CmdRunnerContext(Context, CmdRunner):
     def __call__(
         self, args: list[str | Path], capture_output: bool = False
     ) -> CompletedProcess[bytes]:
-        dry_run: bool = bool(self.find_object(bool))
-        self.mode = RunningMode.DRY_RUN if dry_run else RunningMode.DEFAULT
-        runner = self.dry_runner if dry_run else self.default_runner
+        self.mode = self.find_object(RunningMode) or self.mode
+        runner = (
+            self.dry_runner if self.mode is RunningMode.DRY_RUN else self.default_runner
+        )
         return runner(args, capture_output=capture_output)
 
 
@@ -108,12 +109,12 @@ class DefaultRunner:
         return subprocess.run(args, check=True, capture_output=capture_output)
 
 
-def set_runner_if_unset(ctx: Context, dry_run: bool) -> None:
+def set_obj_to_running_mode_if_unset(ctx: Context, *, dry_run: bool) -> None:
     if dry_run:
-        if ctx.obj:  # pyright: ignore[reportAny]
+        if ctx.find_object(RunningMode):
             error("Cannot set dry-run more than once")
             raise Exit(1)
-        ctx.obj = dry_run
+        ctx.obj = RunningMode.DRY_RUN
 
 
 def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R]]:

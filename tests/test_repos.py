@@ -8,7 +8,7 @@ from unittest.mock import Mock, call
 from pytest import CaptureFixture, MonkeyPatch, fixture, mark, raises
 from typer.testing import CliRunner
 
-from typer_scripts.core import CmdRunner, RunningMode
+from typer_scripts.core import CmdRunnerContext, RunningMode
 from typer_scripts.repos import (
     app,
     check_dotfiles_clean,
@@ -24,7 +24,7 @@ UNKNOWN_OS = "Unknown OS"
 
 @fixture
 def runner() -> Mock:
-    runner = Mock(spec=CmdRunner)
+    runner = Mock(spec_set=CmdRunnerContext)
     runner.mode = RunningMode.DEFAULT
     return runner
 

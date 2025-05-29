@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from unittest.mock import Mock
 
-from pytest import raises
-from typer import Exit
+from pytest import fixture, raises
+from typer import Context, Exit
 
 from typer_scripts.core import (
     CmdRunner,
@@ -10,7 +10,7 @@ from typer_scripts.core import (
     DefaultRunner,
     RunningMode,
     err_console,
-    set_runner_if_unset,
+    set_obj_to_running_mode_if_unset,
 )
 
 
@@ -21,31 +21,41 @@ class TestDefaultRunner:
         assert "hi" in result.stdout.decode()
 
 
-class TestSetObjIfUnset:
+class TestSetObjToRunningModeIfUnset:
+    @fixture
     @staticmethod
-    def test_sets_obj_if_unset() -> None:
-        ctx = Mock()
+    def ctx() -> Context:
+        return Context(Mock())
+
+    @staticmethod
+    def test_sets_obj_if_unset(ctx: Context) -> None:
         ctx.obj = None
-        set_runner_if_unset(ctx, True)
-        assert ctx.obj  # pyright: ignore[reportAny]
+        set_obj_to_running_mode_if_unset(ctx, dry_run=True)
+        assert ctx.obj is RunningMode.DRY_RUN  # pyright: ignore[reportAny]
 
     @staticmethod
-    def test_does_not_set_obj_if_value_is_false() -> None:
-        ctx = Mock()
-        ctx.obj = True
-        set_runner_if_unset(ctx, False)
-        assert ctx.obj  # pyright: ignore[reportAny]
+    def test_does_not_set_obj_if_value_is_false(ctx: Context) -> None:
+        ctx.obj = RunningMode.DEFAULT
+        set_obj_to_running_mode_if_unset(ctx, dry_run=False)
+        assert ctx.obj is RunningMode.DEFAULT  # pyright: ignore[reportAny]
 
     @staticmethod
-    def test_raise_exception_if_value_is_true_and_already_set() -> None:
-        ctx = Mock()
-        ctx.obj = True
+    def test_raise_exception_if_value_is_true_and_already_set(ctx: Context) -> None:
+        ctx.obj = RunningMode.DEFAULT
         err_console.begin_capture()
         try:
             with raises(Exit):
-                set_runner_if_unset(ctx, True)
+                set_obj_to_running_mode_if_unset(ctx, dry_run=True)
         finally:
             assert "Cannot set dry-run more than once" in err_console.end_capture()
+
+    @staticmethod
+    def test_sets_obj_if_value_is_true_and_already_set_to_different_type(
+        ctx: Context,
+    ) -> None:
+        ctx.obj = "test_obj"
+        set_obj_to_running_mode_if_unset(ctx, dry_run=True)
+        assert ctx.obj is RunningMode.DRY_RUN  # pyright: ignore[reportAny]
 
 
 class TestCmdRunnerContext:
@@ -64,8 +74,7 @@ class TestCmdRunnerContext:
         dry_runner = Mock(spec_set=CmdRunner)
         ctx = CmdRunnerContext(Mock(), dry_runner=dry_runner)
 
-        dry_run = True
-        ctx.obj = dry_run
+        ctx.obj = RunningMode.DRY_RUN
         _ = ctx(["a"])
 
         dry_runner.assert_called_with(["a"], capture_output=False)
