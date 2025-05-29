@@ -36,6 +36,7 @@ omit = ['typer_scripts/main.py']
 exclude_lines = [
   'pragma: no cover',
   'pass',
+  '...',
   'if TYPE_CHECKING.*',
 ]
 fail_under = 100

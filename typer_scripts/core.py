@@ -7,6 +7,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Callable, Protocol, override
 
+from click import Context as ClickContext
 from rich.console import Console
 from typer import Context, Exit, Option
 from typer.core import TyperCommand, TyperGroup
@@ -30,8 +31,7 @@ class CmdRunner(Protocol):
 
     def __call__(
         self, args: list[str | Path], capture_output: bool = False
-    ) -> CompletedProcess[bytes]:  # pyright: ignore[reportReturnType]
-        pass
+    ) -> CompletedProcess[bytes]: ...
 
 
 class CmdRunnerContext(Context, CmdRunner):
@@ -62,11 +62,11 @@ class CmdRunnerContext(Context, CmdRunner):
 
 
 class RunnerGroup(TyperGroup):
-    context_class: type[Context] = CmdRunnerContext  # pyright: ignore[reportIncompatibleVariableOverride] (invariant override)
+    context_class: type[ClickContext] = CmdRunnerContext
 
 
 class RunnerCommand(TyperCommand):
-    context_class: type[Context] = CmdRunnerContext  # pyright: ignore[reportIncompatibleVariableOverride] (invariant override)
+    context_class: type[ClickContext] = CmdRunnerContext
 
 
 def make_runner_callback_decorator(
@@ -166,7 +166,7 @@ def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
         **kwargs: P.kwargs,
     ) -> None:
         if cmd_runner.mode is RunningMode.DRY_RUN:
-            print(f"function:{f.__name__}")  # type: ignore[attr-defined]
+            print(f"function:{f.__name__}")
         else:
             f(cmd_runner, *args, **kwargs)
 
