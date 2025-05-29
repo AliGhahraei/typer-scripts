@@ -54,7 +54,7 @@ class CmdRunnerContext(Context, CmdRunner):
     def __call__(
         self, args: list[str | Path], capture_output: bool = False
     ) -> CompletedProcess[bytes]:
-        dry_run: bool = bool(self.obj)  # pyright: ignore[reportAny]
+        dry_run: bool = bool(self.find_object(bool))
         self.mode = RunningMode.DRY_RUN if dry_run else RunningMode.DEFAULT
         runner = self.dry_runner if dry_run else self.default_runner
         return runner(args, capture_output=capture_output)
