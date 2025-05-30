@@ -5,7 +5,7 @@ from subprocess import CalledProcessError, CompletedProcess
 from typing import Any
 from unittest.mock import Mock, call
 
-from domestobot import CmdRunnerContext, RunningMode
+from domestobot import CmdRunnerContext
 from pytest import CaptureFixture, MonkeyPatch, fixture, mark, raises
 from typer.testing import CliRunner
 
@@ -25,7 +25,6 @@ UNKNOWN_OS = "Unknown OS"
 @fixture
 def runner() -> Mock:
     runner = Mock(spec_set=CmdRunnerContext)
-    runner.mode = RunningMode.DEFAULT
     return runner
 
 
