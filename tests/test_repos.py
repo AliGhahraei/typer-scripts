@@ -34,7 +34,7 @@ def repo1() -> Path:
 
 
 @fixture
-def repos(repo1: Path) -> list[Path]:
+def repos_fixture(repo1: Path) -> list[Path]:
     return [repo1, Path("~/repo2")]
 
 
@@ -54,8 +54,10 @@ def unpushed_commits_output() -> CompletedProcess[bytes]:
 
 
 @fixture
-def set_repos_env(monkeypatch: MonkeyPatch, repos: list[Path]):
-    monkeypatch.setenv("TYPER_SCRIPTS_REPOS", " ".join([str(repo) for repo in repos]))
+def set_repos_env(monkeypatch: MonkeyPatch, repos_fixture: list[Path]):
+    monkeypatch.setenv(
+        "TYPER_SCRIPTS_REPOS", " ".join([str(repo) for repo in repos_fixture])
+    )
     yield
 
 
@@ -81,8 +83,8 @@ def assert_clean_message_shown(out: str) -> None:
     assert_stdout("Everything's clean!", out)
 
 
-def assert_repos_fetched(repos: Iterable[Path], runner: Mock) -> None:
-    runner.assert_has_calls([call(*get_git_fetch_args(repo)) for repo in repos])
+def assert_repos_fetched(repos_fixture: Iterable[Path], runner: Mock) -> None:
+    runner.assert_has_calls([call(*get_git_fetch_args(repo)) for repo in repos_fixture])
 
 
 def get_dotfiles_clean_prefix() -> tuple[str, ...]:
@@ -219,25 +221,24 @@ class TestFetchRepos:
     @staticmethod
     def test_fetch_shows_fetching_repos_message(
         runner: Mock,
-        repos: list[Path],
+        repos_fixture: list[Path],
         capsys: CaptureFixture[str],
     ) -> None:
-        fetch_repos(runner, repos=repos)
-
+        fetch_repos(runner, repos=repos_fixture)
         assert_stdout("Fetching repos", capsys.readouterr().out)
 
     @staticmethod
-    def test_fetch_is_run_for_every_repo(runner: Mock, repos: list[Path]) -> None:
-        fetch_repos(runner, repos=repos)
-
-        assert_repos_fetched(repos, runner)
+    def test_fetch_is_run_for_every_repo(
+        runner: Mock, repos_fixture: list[Path]
+    ) -> None:
+        fetch_repos(runner, repos=repos_fixture)
+        assert_repos_fetched(repos_fixture, runner)
 
     @staticmethod
     @mark.usefixtures("set_repos_env")
-    def test_fetch_uses_env_as_default(runner: Mock, repos: list[Path]) -> None:
+    def test_fetch_uses_env_as_default(runner: Mock, repos_fixture: list[Path]) -> None:
         fetch_repos(runner)
-
-        assert_repos_fetched(repos, runner)
+        assert_repos_fetched(repos_fixture, runner)
 
     @staticmethod
     @mark.parametrize("kwargs", [{}, {"repos": None}, {"repos": list[Path]()}])
@@ -258,15 +259,13 @@ class TestCheckReposClean:
     @staticmethod
     def test_check_says_clean_on_clean_repos(
         runner: Mock,
-        repos: list[Path],
+        repos_fixture: list[Path],
         capsys: CaptureFixture[str],
         clean_output: CompletedProcess[bytes],
     ) -> None:
-        runner.side_effect = [clean_output for _ in range(len(repos) * 2)]
-
-        check_repos_clean(runner, repos=repos)
-
-        for repo in repos:
+        runner.side_effect = [clean_output for _ in range(len(repos_fixture) * 2)]
+        check_repos_clean(runner, repos=repos_fixture)
+        for repo in repos_fixture:
             runner.assert_has_calls(
                 [
                     call(
@@ -356,15 +355,13 @@ class TestCheckReposClean:
     @mark.usefixtures("set_repos_env")
     def test_check_uses_env_as_default(
         runner: Mock,
-        repos: list[Path],
+        repos_fixture: list[Path],
         capsys: CaptureFixture[str],
         unsaved_changes_output: CompletedProcess[bytes],
     ) -> None:
         runner.return_value = unsaved_changes_output
-
         check_repos_clean(runner)
-
-        assert_repos_not_clean(repos, capsys.readouterr().err)
+        assert_repos_not_clean(repos_fixture, capsys.readouterr().err)
 
 
 class TestApp:
@@ -372,13 +369,12 @@ class TestApp:
     @mark.usefixtures("set_repos_env", "set_dotfiles_env")
     def test_main_dry_run_prints_expected_output_and_exits(
         cli_runner: CliRunner,
-        repos: list[Path],
+        repos_fixture: list[Path],
     ) -> None:
         result = cli_runner.invoke(app, "--dry-run", catch_exceptions=False)
-
         assert str(tuple(get_fetch_dotfiles_args())) in result.stdout
         assert "{check_dotfiles_clean(cmd_runner)}" in result.stdout
-        for repo in repos:
+        for repo in repos_fixture:
             assert str(tuple(get_git_fetch_args(repo))) in result.stdout
         assert "{check_repos_clean(cmd_runner)}" in result.stdout
         assert result.exit_code == 0
