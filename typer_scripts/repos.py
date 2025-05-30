@@ -61,7 +61,7 @@ def check_dotfiles_clean(
     cmd_runner: CmdRunnerContext,
 ) -> None:
     """Check if dotfiles have unpublished work."""
-    command = [*_get_git_dotfiles_command(), f"--work-tree={Path.home()}"]
+    command = *_get_git_dotfiles_command(), f"--work-tree={Path.home()}"
     if _has_unsaved_changes(cmd_runner, *command) or _has_unpushed_commits(
         cmd_runner, *command
     ):
@@ -100,8 +100,8 @@ def check_repos_clean(
         info("Everything's clean!")
 
 
-def _get_git_dotfiles_command() -> list[str]:
-    return ["git", f"--git-dir={os.getenv('DOTFILES_REPO')}"]
+def _get_git_dotfiles_command() -> tuple[str, ...]:
+    return "git", f"--git-dir={os.getenv('DOTFILES_REPO')}"
 
 
 def sanitize_repos(repos_param: list[Path] | None) -> list[Path]:
