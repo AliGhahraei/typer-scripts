@@ -60,7 +60,11 @@ def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
         **kwargs: P.kwargs,
     ) -> None:
         if cmd_runner.find_object(RunningMode) is RunningMode.DRY_RUN:
-            print(f"function:{f.__name__}")
+            repr_args = ", ".join(str(arg) for arg in ("cmd_runner", *args))
+            repr_kwargs = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+            print(
+                f"{{{f.__name__}({repr_args}{f', {repr_kwargs}' if repr_kwargs else ''})}}"
+            )
         else:
             f(cmd_runner, *args, **kwargs)
 

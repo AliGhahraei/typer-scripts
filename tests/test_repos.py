@@ -377,10 +377,10 @@ class TestApp:
         result = cli_runner.invoke(app, "--dry-run", catch_exceptions=False)
 
         assert str(tuple(get_fetch_dotfiles_args())) in result.stdout
-        assert "function:check_dotfiles_clean" in result.stdout
+        assert "{check_dotfiles_clean(cmd_runner)}" in result.stdout
         for repo in repos:
             assert str(tuple(get_git_fetch_args(repo))) in result.stdout
-        assert "function:check_repos_clean" in result.stdout
+        assert "{check_repos_clean(cmd_runner)}" in result.stdout
         assert result.exit_code == 0
 
     @staticmethod
