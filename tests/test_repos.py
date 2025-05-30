@@ -160,7 +160,7 @@ class TestCheckDotfilesClean:
             *get_command_prefix_for_unsaved_changes(),
             capture_output=True,
         )
-        assert_stdout("Dotfiles were not clean", capsys.readouterr().out)
+        assert_stdout("Dotfiles were not clean", capsys.readouterr().err)
 
     @staticmethod
     def test_check_shows_not_clean_on_dotfiles_with_unpushed_commits(
@@ -187,7 +187,7 @@ class TestCheckDotfilesClean:
                 ),
             ]
         )
-        assert_stdout("Dotfiles were not clean", capsys.readouterr().out)
+        assert_stdout("Dotfiles were not clean", capsys.readouterr().err)
 
     @staticmethod
     def test_check_shows_clean_on_clean_dotfiles(
@@ -297,7 +297,7 @@ class TestCheckReposClean:
             *get_unsaved_changes_args(repo1),
             capture_output=True,
         )
-        assert_repo_not_clean(repo1, capsys.readouterr().out)
+        assert_repo_not_clean(repo1, capsys.readouterr().err)
 
     @staticmethod
     def test_check_says_not_clean_on_repos_with_unpushed_commits(
@@ -323,7 +323,7 @@ class TestCheckReposClean:
                 ),
             ]
         )
-        assert_repo_not_clean(repo1, capsys.readouterr().out)
+        assert_repo_not_clean(repo1, capsys.readouterr().err)
 
     @staticmethod
     def test_check_exits_with_not_a_repo_error_on_invalid_repo(
@@ -365,7 +365,7 @@ class TestCheckReposClean:
 
         check_repos_clean(runner)
 
-        assert_repos_not_clean(repos, capsys.readouterr().out)
+        assert_repos_not_clean(repos, capsys.readouterr().err)
 
 
 class TestApp:

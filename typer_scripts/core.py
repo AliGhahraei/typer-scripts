@@ -34,6 +34,15 @@ class CmdRunner(Protocol):
     ) -> CompletedProcess[bytes]: ...
 
 
+def title(message: str) -> None:
+    dotted_message = f"\n{message}..."
+    console.print(dotted_message, style="bold magenta")
+
+
+def warning(message: str) -> None:
+    err_console.print(message, style="yellow")
+
+
 class CmdRunnerContext(Context, CmdRunner):
     mode: RunningMode = RunningMode.DEFAULT
     dry_runner: CmdRunner
@@ -128,17 +137,8 @@ def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R
     return decorator
 
 
-def title(message: str) -> None:
-    dotted_message = f"\n{message}..."
-    console.print(dotted_message, style="bold magenta")
-
-
 def info(message: str) -> None:
     console.print(message, style="cyan")
-
-
-def warning(message: str) -> None:
-    console.print(message, style="yellow")
 
 
 def error(message: str) -> None:
