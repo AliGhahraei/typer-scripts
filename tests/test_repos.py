@@ -2,7 +2,7 @@
 from collections.abc import Iterable
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
-from typing import Any, override
+from typing import override
 from unittest.mock import Mock, call
 
 from domestobot import CmdRunnerContext
@@ -245,7 +245,7 @@ class TestFetchRepos:
     @mark.parametrize("kwargs", [{}, {"repos": None}, {"repos": list[Path]()}])
     def test_fetch_exits_without_repos(
         runner: Mock,
-        kwargs: dict[str, Any],  # pyright: ignore[reportExplicitAny]
+        kwargs: dict[str, object],
     ) -> None:
         message = (
             "Either the `repos` argument or the `TYPER_SCRIPTS_REPOS` "
@@ -253,7 +253,7 @@ class TestFetchRepos:
         )
 
         with raises(SystemExit, match=message):
-            fetch_repos(runner, **kwargs)  # pyright: ignore[reportAny]
+            fetch_repos(runner, **kwargs)  # pyright: ignore[reportArgumentType]
 
 
 class TestCheckReposClean:
