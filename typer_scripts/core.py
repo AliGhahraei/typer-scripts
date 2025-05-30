@@ -30,7 +30,7 @@ class CmdRunner(Protocol):
     mode: RunningMode
 
     def __call__(
-        self, args: list[str | Path], capture_output: bool = False
+        self, *args: str | Path, capture_output: bool = False
     ) -> CompletedProcess[bytes]: ...
 
 
@@ -52,13 +52,13 @@ class CmdRunnerContext(Context, CmdRunner):
 
     @override
     def __call__(
-        self, args: list[str | Path], capture_output: bool = False
+        self, *args: str | Path, capture_output: bool = False
     ) -> CompletedProcess[bytes]:
         self.mode = self.find_object(RunningMode) or self.mode
         runner = (
             self.dry_runner if self.mode is RunningMode.DRY_RUN else self.default_runner
         )
-        return runner(args, capture_output=capture_output)
+        return runner(*args, capture_output=capture_output)
 
 
 class RunnerGroup(TyperGroup):
@@ -89,12 +89,11 @@ class DryRunner:
 
     def __call__(
         self,
-        args: list[str | Path],
+        *args: str | Path,
         capture_output: bool = False,
     ) -> CompletedProcess[bytes]:
-        dry_run_args = tuple(args)
-        print(dry_run_args)
-        return CompletedProcess(dry_run_args, 0, str(dry_run_args).encode())
+        print(args)
+        return CompletedProcess(args, 0, str(args).encode())
 
 
 class DefaultRunner:
@@ -104,7 +103,7 @@ class DefaultRunner:
         self.mode = RunningMode.DEFAULT
 
     def __call__(
-        self, args: list[str | Path], capture_output: bool = False
+        self, *args: str | Path, capture_output: bool = False
     ) -> CompletedProcess[bytes]:
         return subprocess.run(args, check=True, capture_output=capture_output)
 

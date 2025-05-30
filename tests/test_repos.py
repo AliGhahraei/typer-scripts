@@ -83,39 +83,39 @@ def assert_clean_message_shown(out: str) -> None:
 
 
 def assert_repos_fetched(repos: Iterable[Path], runner: Mock) -> None:
-    runner.assert_has_calls([call(get_git_fetch_args(repo)) for repo in repos])
+    runner.assert_has_calls([call(*get_git_fetch_args(repo)) for repo in repos])
 
 
-def get_dotfiles_clean_prefix() -> list[str]:
-    return [*get_dotfiles_prefix(), f"--work-tree={Path.home()}"]
+def get_dotfiles_clean_prefix() -> tuple[str, ...]:
+    return *get_dotfiles_prefix(), f"--work-tree={Path.home()}"
 
 
-def get_dotfiles_prefix() -> list[str]:
-    return ["git", "--git-dir=TEST_DOTFILES_REPO"]
+def get_dotfiles_prefix() -> tuple[str, ...]:
+    return "git", "--git-dir=TEST_DOTFILES_REPO"
 
 
-def get_fetch_dotfiles_args() -> list[str]:
-    return [*get_dotfiles_prefix(), "fetch"]
+def get_fetch_dotfiles_args() -> tuple[str, ...]:
+    return *get_dotfiles_prefix(), "fetch"
 
 
-def get_git_fetch_args(repo: Path) -> list[str | Path]:
-    return ["git", "-C", repo.expanduser(), "fetch"]
+def get_git_fetch_args(repo: Path) -> tuple[str | Path, ...]:
+    return "git", "-C", repo.expanduser(), "fetch"
 
 
-def get_command_prefix_for_unpushed_commits() -> list[str]:
-    return ["log", "--branches", "--not", "--remotes", "--oneline"]
+def get_command_prefix_for_unpushed_commits() -> tuple[str, ...]:
+    return "log", "--branches", "--not", "--remotes", "--oneline"
 
 
-def get_unpushed_commits_args(repo: Path) -> list[str | Path]:
-    return ["git", "-C", repo.expanduser(), *get_command_prefix_for_unpushed_commits()]
+def get_unpushed_commits_args(repo: Path) -> tuple[str | Path, ...]:
+    return "git", "-C", repo.expanduser(), *get_command_prefix_for_unpushed_commits()
 
 
-def get_command_prefix_for_unsaved_changes() -> list[str]:
-    return ["status", "--ignore-submodules", "--porcelain"]
+def get_command_prefix_for_unsaved_changes() -> tuple[str, ...]:
+    return "status", "--ignore-submodules", "--porcelain"
 
 
-def get_unsaved_changes_args(repo: Path) -> list[str | Path]:
-    return ["git", "-C", repo.expanduser(), *get_command_prefix_for_unsaved_changes()]
+def get_unsaved_changes_args(repo: Path) -> tuple[str | Path, ...]:
+    return "git", "-C", repo.expanduser(), *get_command_prefix_for_unsaved_changes()
 
 
 class TestFetchDotfiles:
@@ -132,7 +132,7 @@ class TestFetchDotfiles:
     def test_fetch_runs_fetch(runner: Mock) -> None:
         fetch_dotfiles(runner)
 
-        runner.assert_called_once_with(get_fetch_dotfiles_args())
+        runner.assert_called_once_with(*get_fetch_dotfiles_args())
 
 
 @mark.usefixtures("set_dotfiles_env")
@@ -156,7 +156,8 @@ class TestCheckDotfilesClean:
         check_dotfiles_clean(runner)
 
         runner.assert_called_once_with(
-            [*get_dotfiles_clean_prefix(), *get_command_prefix_for_unsaved_changes()],
+            *get_dotfiles_clean_prefix(),
+            *get_command_prefix_for_unsaved_changes(),
             capture_output=True,
         )
         assert_stdout("Dotfiles were not clean", capsys.readouterr().out)
@@ -175,17 +176,13 @@ class TestCheckDotfilesClean:
         runner.assert_has_calls(
             [
                 call(
-                    [
-                        *get_dotfiles_clean_prefix(),
-                        *get_command_prefix_for_unsaved_changes(),
-                    ],
+                    *get_dotfiles_clean_prefix(),
+                    *get_command_prefix_for_unsaved_changes(),
                     capture_output=True,
                 ),
                 call(
-                    [
-                        *get_dotfiles_clean_prefix(),
-                        *get_command_prefix_for_unpushed_commits(),
-                    ],
+                    *get_dotfiles_clean_prefix(),
+                    *get_command_prefix_for_unpushed_commits(),
                     capture_output=True,
                 ),
             ]
@@ -205,17 +202,13 @@ class TestCheckDotfilesClean:
         runner.assert_has_calls(
             [
                 call(
-                    [
-                        *get_dotfiles_clean_prefix(),
-                        *get_command_prefix_for_unsaved_changes(),
-                    ],
+                    *get_dotfiles_clean_prefix(),
+                    *get_command_prefix_for_unsaved_changes(),
                     capture_output=True,
                 ),
                 call(
-                    [
-                        *get_dotfiles_clean_prefix(),
-                        *get_command_prefix_for_unpushed_commits(),
-                    ],
+                    *get_dotfiles_clean_prefix(),
+                    *get_command_prefix_for_unpushed_commits(),
                     capture_output=True,
                 ),
             ]
@@ -278,11 +271,11 @@ class TestCheckReposClean:
             runner.assert_has_calls(
                 [
                     call(
-                        get_unsaved_changes_args(repo),
+                        *get_unsaved_changes_args(repo),
                         capture_output=True,
                     ),
                     call(
-                        get_unpushed_commits_args(repo),
+                        *get_unpushed_commits_args(repo),
                         capture_output=True,
                     ),
                 ]
@@ -301,7 +294,7 @@ class TestCheckReposClean:
         check_repos_clean(runner, repos=[repo1])
 
         runner.assert_called_once_with(
-            get_unsaved_changes_args(repo1),
+            *get_unsaved_changes_args(repo1),
             capture_output=True,
         )
         assert_repo_not_clean(repo1, capsys.readouterr().out)
@@ -321,11 +314,11 @@ class TestCheckReposClean:
         runner.assert_has_calls(
             [
                 call(
-                    get_unsaved_changes_args(repo1),
+                    *get_unsaved_changes_args(repo1),
                     capture_output=True,
                 ),
                 call(
-                    get_unpushed_commits_args(repo1),
+                    *get_unpushed_commits_args(repo1),
                     capture_output=True,
                 ),
             ]
@@ -343,7 +336,7 @@ class TestCheckReposClean:
             check_repos_clean(runner, repos=[repo1])
 
         runner.assert_called_once_with(
-            get_unsaved_changes_args(repo1),
+            *get_unsaved_changes_args(repo1),
             capture_output=True,
         )
 
@@ -357,7 +350,7 @@ class TestCheckReposClean:
             check_repos_clean(runner, repos=[repo1])
 
         runner.assert_called_once_with(
-            get_unsaved_changes_args(repo1), capture_output=True
+            *get_unsaved_changes_args(repo1), capture_output=True
         )
 
     @staticmethod

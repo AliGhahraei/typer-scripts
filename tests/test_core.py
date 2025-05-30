@@ -17,7 +17,7 @@ from typer_scripts.core import (
 class TestDefaultRunner:
     @staticmethod
     def test_runner_executes_command() -> None:
-        result = DefaultRunner()(["echo", "hi"], capture_output=True)
+        result = DefaultRunner()("echo", "hi", capture_output=True)
         assert "hi" in result.stdout.decode()
 
 
@@ -64,9 +64,9 @@ class TestCmdRunnerContext:
         default_runner = Mock(spec_set=CmdRunner)
         ctx = CmdRunnerContext(Mock(), default_runner=default_runner)
 
-        _ = ctx(["a"])
+        _ = ctx("a")
 
-        default_runner.assert_called_with(["a"], capture_output=False)
+        default_runner.assert_called_with("a", capture_output=False)
         assert ctx.mode == RunningMode.DEFAULT
 
     @staticmethod
@@ -75,7 +75,7 @@ class TestCmdRunnerContext:
         ctx = CmdRunnerContext(Mock(), dry_runner=dry_runner)
 
         ctx.obj = RunningMode.DRY_RUN
-        _ = ctx(["a"])
+        _ = ctx("a")
 
-        dry_runner.assert_called_with(["a"], capture_output=False)
+        dry_runner.assert_called_with("a", capture_output=False)
         assert ctx.mode == RunningMode.DRY_RUN

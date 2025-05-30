@@ -49,7 +49,7 @@ def repos(
 @task_title("Fetching dotfiles")
 def fetch_dotfiles(cmd_runner: CmdRunnerContext) -> None:
     """Fetch new changes for dotfiles."""
-    _ = cmd_runner([*_get_git_dotfiles_command(), "fetch"])
+    _ = cmd_runner(*_get_git_dotfiles_command(), "fetch")
 
 
 @runner_command()
@@ -77,7 +77,7 @@ def fetch_repos(
     """Fetch new changes for repos."""
     sanitized_repos = sanitize_repos(repos)
     for repo in sanitized_repos:
-        _ = cmd_runner(["git", "-C", repo, "fetch"])
+        _ = cmd_runner("git", "-C", repo, "fetch")
 
 
 @runner_command()
@@ -137,7 +137,10 @@ def is_tree_dirty(cmd_runner: CmdRunner, dir_: Path) -> bool:
 
 def _has_unsaved_changes(runner: CmdRunner, *command_prefix: str | Path) -> bool:
     unsaved_changes = runner(
-        [*command_prefix, "status", "--ignore-submodules", "--porcelain"],
+        *command_prefix,
+        "status",
+        "--ignore-submodules",
+        "--porcelain",
         capture_output=True,
     )
     return bool(_decode_stripped(unsaved_changes))
@@ -145,7 +148,12 @@ def _has_unsaved_changes(runner: CmdRunner, *command_prefix: str | Path) -> bool
 
 def _has_unpushed_commits(runner: CmdRunner, *command_prefix: str | Path) -> bool:
     unpushed_commits = runner(
-        [*command_prefix, "log", "--branches", "--not", "--remotes", "--oneline"],
+        *command_prefix,
+        "log",
+        "--branches",
+        "--not",
+        "--remotes",
+        "--oneline",
         capture_output=True,
     )
     return bool(_decode_stripped(unpushed_commits))
