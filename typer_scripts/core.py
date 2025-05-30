@@ -1,120 +1,15 @@
 #!/usr/bin/env python3
-import subprocess
 import sys
-from enum import Enum, auto
 from functools import wraps
-from pathlib import Path
-from subprocess import CompletedProcess
-from typing import Callable, Protocol, override
+from typing import Callable, Protocol
 
-from click import Context as ClickContext
+from domestobot import CmdRunnerContext, RunnerGroup, RunningMode, title
 from rich.console import Console
-from typer import Context, Exit, Option
-from typer.core import TyperCommand, TyperGroup
+from typer import Exit
 from typer.models import CommandFunctionType
 
 console = Console()
 err_console = Console(stderr=True)
-
-
-DRY_RUN_HELP = "Print commands for every step instead of running them"
-dry_run_option = Option(help=DRY_RUN_HELP, show_default=False)  # pyright: ignore[reportAny]
-
-
-class RunningMode(Enum):
-    DRY_RUN = auto()
-    DEFAULT = auto()
-
-
-class CmdRunner(Protocol):
-    mode: RunningMode
-
-    def __call__(
-        self, *args: str | Path, capture_output: bool = False
-    ) -> CompletedProcess[bytes]: ...
-
-
-def title(message: str) -> None:
-    dotted_message = f"\n{message}..."
-    console.print(dotted_message, style="bold magenta")
-
-
-def warning(message: str) -> None:
-    err_console.print(message, style="yellow")
-
-
-class CmdRunnerContext(Context, CmdRunner):
-    mode: RunningMode = RunningMode.DEFAULT
-    dry_runner: CmdRunner
-    default_runner: CmdRunner
-
-    def __init__(
-        self,
-        *args: object,
-        dry_runner: CmdRunner | None = None,
-        default_runner: CmdRunner | None = None,
-        **kwargs: object,
-    ) -> None:
-        self.dry_runner = dry_runner or DryRunner()
-        self.default_runner = default_runner or DefaultRunner()
-        super().__init__(*args, **kwargs)  # pyright: ignore[reportArgumentType]
-
-    @override
-    def __call__(
-        self, *args: str | Path, capture_output: bool = False
-    ) -> CompletedProcess[bytes]:
-        self.mode = self.find_object(RunningMode) or self.mode
-        runner = (
-            self.dry_runner if self.mode is RunningMode.DRY_RUN else self.default_runner
-        )
-        return runner(*args, capture_output=capture_output)
-
-
-class RunnerGroup(TyperGroup):
-    context_class: type[ClickContext] = CmdRunnerContext
-
-
-class DryRunner:
-    mode: RunningMode
-
-    def __init__(self) -> None:
-        self.mode = RunningMode.DRY_RUN
-
-    def __call__(
-        self,
-        *args: str | Path,
-        capture_output: bool = False,
-    ) -> CompletedProcess[bytes]:
-        print(args)
-        return CompletedProcess(args, 0, str(args).encode())
-
-
-class DefaultRunner:
-    mode: RunningMode
-
-    def __init__(self) -> None:
-        self.mode = RunningMode.DEFAULT
-
-    def __call__(
-        self, *args: str | Path, capture_output: bool = False
-    ) -> CompletedProcess[bytes]:
-        return subprocess.run(args, check=True, capture_output=capture_output)
-
-
-def set_obj_to_running_mode_if_unset(ctx: Context, *, dry_run: bool) -> None:
-    if dry_run:
-        if ctx.find_object(RunningMode):
-            error("Cannot set dry-run more than once")
-            raise Exit(1)
-        ctx.obj = RunningMode.DRY_RUN
-
-
-def error(message: str) -> None:
-    err_console.print(message, style="red")
-
-
-class RunnerCommand(TyperCommand):
-    context_class: type[ClickContext] = CmdRunnerContext
 
 
 def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R]]:

@@ -5,10 +5,10 @@ from subprocess import CalledProcessError, CompletedProcess
 from typing import Any
 from unittest.mock import Mock, call
 
+from domestobot import CmdRunnerContext, RunningMode
 from pytest import CaptureFixture, MonkeyPatch, fixture, mark, raises
 from typer.testing import CliRunner
 
-from typer_scripts.core import CmdRunnerContext, RunningMode
 from typer_scripts.repos import (
     app,
     check_dotfiles_clean,

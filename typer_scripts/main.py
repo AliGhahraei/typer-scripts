@@ -2,22 +2,21 @@
 from typing import Annotated
 
 from domestobot import (
+    CmdRunnerContext,
+    dry_run_option,  # pyright: ignore[reportAny]
     get_app,
     get_groups_callbacks,
     get_root_dir,
+    set_obj_to_running_mode_if_unset,
 )
 
 from typer_scripts.core import (
-    CmdRunnerContext,
-    dry_run_option,  # pyright: ignore[reportAny]
     make_runner_callback_decorator,
-    set_obj_to_running_mode_if_unset,
 )
 from typer_scripts.repos import app as repos_app
 from typer_scripts.typer_tools import App
 
 CONFIG_APPLY = "config-apply"
-REPOS = "repos"
 
 
 def add_config_typer(app_: App, name: str) -> None:
@@ -27,7 +26,7 @@ def add_config_typer(app_: App, name: str) -> None:
 app = App()
 add_config_typer(app, "maintenance")
 add_config_typer(app, "config-save")
-app.add_typer(repos_app, name=REPOS)
+app.add_typer(repos_app, name="repos")
 add_config_typer(app, "backup")
 add_config_typer(app, CONFIG_APPLY)
 
@@ -40,7 +39,5 @@ def main(ctx: CmdRunnerContext, dry_run: Annotated[bool, dry_run_option] = False
     set_obj_to_running_mode_if_unset(ctx, dry_run=dry_run)
     if ctx.invoked_subcommand is None:
         for group_name, callback in get_groups_callbacks(app, ctx).items():
-            if group_name == REPOS:
+            if group_name != CONFIG_APPLY:
                 callback()
-            elif group_name != CONFIG_APPLY:
-                callback(dry_run)

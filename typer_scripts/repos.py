@@ -5,20 +5,22 @@ from subprocess import CalledProcessError, CompletedProcess
 from sys import exit
 from typing import Annotated, Callable
 
-from domestobot import get_commands_callbacks
-from typer.models import CommandFunctionType
-
-from typer_scripts.core import (
+from domestobot import (
     CmdRunner,
     CmdRunnerContext,
     RunnerCommand,
     dry_run_option,  # pyright: ignore[reportAny]
+    get_commands_callbacks,
+    set_obj_to_running_mode_if_unset,
+    warning,
+)
+from typer.models import CommandFunctionType
+
+from typer_scripts.core import (
     dry_run_repr,
     info,
     make_runner_callback_decorator,
-    set_obj_to_running_mode_if_unset,
     task_title,
-    warning,
 )
 from typer_scripts.typer_tools import App
 
