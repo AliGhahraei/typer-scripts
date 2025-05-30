@@ -59,7 +59,7 @@ def dry_run_repr[**P](f: DryRunnable[P]) -> DryRunnable[P]:
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
-        if cmd_runner.mode is RunningMode.DRY_RUN:
+        if cmd_runner.find_object(RunningMode) is RunningMode.DRY_RUN:
             print(f"function:{f.__name__}")
         else:
             f(cmd_runner, *args, **kwargs)
