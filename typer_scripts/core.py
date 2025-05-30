@@ -21,7 +21,7 @@ DRY_RUN_HELP = "Print commands for every step instead of running them"
 dry_run_option = Option(help=DRY_RUN_HELP, show_default=False)  # pyright: ignore[reportAny]
 
 
-class RunningMode(str, Enum):
+class RunningMode(Enum):
     DRY_RUN = auto()
     DEFAULT = auto()
 
@@ -74,22 +74,6 @@ class RunnerGroup(TyperGroup):
     context_class: type[ClickContext] = CmdRunnerContext
 
 
-class RunnerCommand(TyperCommand):
-    context_class: type[ClickContext] = CmdRunnerContext
-
-
-def make_runner_callback_decorator(
-    callback: Callable[..., Callable[[CommandFunctionType], CommandFunctionType]],
-) -> Callable[..., Callable[[CommandFunctionType], CommandFunctionType]]:
-    @wraps(callback)
-    def runner_callback(
-        *args: object, **kwargs: object
-    ) -> Callable[[CommandFunctionType], CommandFunctionType]:
-        return callback(*args, **dict(cls=RunnerGroup) | kwargs)
-
-    return runner_callback
-
-
 class DryRunner:
     mode: RunningMode
 
@@ -125,6 +109,14 @@ def set_obj_to_running_mode_if_unset(ctx: Context, *, dry_run: bool) -> None:
         ctx.obj = RunningMode.DRY_RUN
 
 
+def error(message: str) -> None:
+    err_console.print(message, style="red")
+
+
+class RunnerCommand(TyperCommand):
+    context_class: type[ClickContext] = CmdRunnerContext
+
+
 def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @wraps(f)
@@ -137,12 +129,20 @@ def task_title[**P, R](message: str) -> Callable[[Callable[P, R]], Callable[P, R
     return decorator
 
 
+def make_runner_callback_decorator(
+    callback: Callable[..., Callable[[CommandFunctionType], CommandFunctionType]],
+) -> Callable[..., Callable[[CommandFunctionType], CommandFunctionType]]:
+    @wraps(callback)
+    def runner_callback(
+        *args: object, **kwargs: object
+    ) -> Callable[[CommandFunctionType], CommandFunctionType]:
+        return callback(*args, **dict(cls=RunnerGroup) | kwargs)
+
+    return runner_callback
+
+
 def info(message: str) -> None:
     console.print(message, style="cyan")
-
-
-def error(message: str) -> None:
-    err_console.print(message, style="red")
 
 
 class DryRunnable[**P](Protocol):

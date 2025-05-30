@@ -21,6 +21,29 @@ class TestDefaultRunner:
         assert "hi" in result.stdout.decode()
 
 
+class TestCmdRunnerContext:
+    @staticmethod
+    def test_runner_runs_in_default_mode_by_default() -> None:
+        default_runner = Mock(spec_set=CmdRunner)
+        ctx = CmdRunnerContext(Mock(), default_runner=default_runner)
+
+        _ = ctx("a")
+
+        default_runner.assert_called_with("a", capture_output=False)
+        assert ctx.mode == RunningMode.DEFAULT
+
+    @staticmethod
+    def test_runner_runs_in_dry_run_mode() -> None:
+        dry_runner = Mock(spec_set=CmdRunner)
+        ctx = CmdRunnerContext(Mock(), dry_runner=dry_runner)
+
+        ctx.obj = RunningMode.DRY_RUN
+        _ = ctx("a")
+
+        dry_runner.assert_called_with("a", capture_output=False)
+        assert ctx.mode == RunningMode.DRY_RUN
+
+
 class TestSetObjToRunningModeIfUnset:
     @fixture
     @staticmethod
@@ -56,26 +79,3 @@ class TestSetObjToRunningModeIfUnset:
         ctx.obj = "test_obj"
         set_obj_to_running_mode_if_unset(ctx, dry_run=True)
         assert ctx.obj is RunningMode.DRY_RUN  # pyright: ignore[reportAny]
-
-
-class TestCmdRunnerContext:
-    @staticmethod
-    def test_runner_runs_in_default_mode_by_default() -> None:
-        default_runner = Mock(spec_set=CmdRunner)
-        ctx = CmdRunnerContext(Mock(), default_runner=default_runner)
-
-        _ = ctx("a")
-
-        default_runner.assert_called_with("a", capture_output=False)
-        assert ctx.mode == RunningMode.DEFAULT
-
-    @staticmethod
-    def test_runner_runs_in_dry_run_mode() -> None:
-        dry_runner = Mock(spec_set=CmdRunner)
-        ctx = CmdRunnerContext(Mock(), dry_runner=dry_runner)
-
-        ctx.obj = RunningMode.DRY_RUN
-        _ = ctx("a")
-
-        dry_runner.assert_called_with("a", capture_output=False)
-        assert ctx.mode == RunningMode.DRY_RUN
