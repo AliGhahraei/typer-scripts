@@ -2,7 +2,7 @@
 from collections.abc import Iterable
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
-from typing import Any
+from typing import Any, override
 from unittest.mock import Mock, call
 
 from domestobot import CmdRunnerContext
@@ -15,6 +15,7 @@ from typer_scripts.repos import (
     check_repos_clean,
     fetch_dotfiles,
     fetch_repos,
+    repos,
 )
 
 DARWIN = "Darwin"
@@ -362,6 +363,20 @@ class TestCheckReposClean:
         runner.return_value = unsaved_changes_output
         check_repos_clean(runner)
         assert_repos_not_clean(repos_fixture, capsys.readouterr().err)
+
+
+class TestReposCallback:
+    @staticmethod
+    def test(capsys: CaptureFixture[str]) -> None:
+        class Runner(CmdRunnerContext):
+            @override
+            def __call__(self, *_: object, **__: object) -> CompletedProcess[bytes]:
+                raise Exception
+
+        with raises(Exception):
+            repos(Runner(Mock()))
+
+        assert "Unhandled error, printing traceback:" in capsys.readouterr().err
 
 
 class TestApp:
