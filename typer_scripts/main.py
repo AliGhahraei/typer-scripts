@@ -16,7 +16,7 @@ from typer_scripts.core import (
 from typer_scripts.repos import app as repos_app
 from typer_scripts.typer_tools import App
 
-CONFIG_APPLY = "config-apply"
+APPLY = "apply"
 
 
 def add_config_typer(app_: App, name: str) -> None:
@@ -25,10 +25,10 @@ def add_config_typer(app_: App, name: str) -> None:
 
 app = App()
 add_config_typer(app, "maintenance")
-add_config_typer(app, "config-save")
+add_config_typer(app, "save")
 app.add_typer(repos_app, name="repos")
 add_config_typer(app, "backup")
-add_config_typer(app, CONFIG_APPLY)
+add_config_typer(app, APPLY)
 
 
 runner_callback = make_runner_callback_decorator(app.callback)
@@ -39,5 +39,5 @@ def main(ctx: CmdRunnerContext, dry_run: Annotated[bool, dry_run_option] = False
     set_obj_to_running_mode_if_unset(ctx, dry_run=dry_run)
     if ctx.invoked_subcommand is None:
         for group_name, callback in get_groups_callbacks(app, ctx).items():
-            if group_name != CONFIG_APPLY:
+            if group_name != APPLY:
                 callback()
