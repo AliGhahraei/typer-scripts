@@ -23,7 +23,7 @@ packages = [{include = "typer_scripts"}]
 typer = "^0.16.0"
 pytest = "^8.4.1"
 ruff = "^0.12.5"
-coverage = "^7.10.1"
+coverage = "^7.10.3"
 basedpyright = "^1.31.1"
 
 
