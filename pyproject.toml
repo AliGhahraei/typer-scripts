@@ -7,7 +7,7 @@ authors = [
 ]
 license = "GPLv3"
 readme = "README.md"
-requires-python = ">=3.13.3,<4.0"
+requires-python = ">=3.13.7,<4.0"
 dependencies = [
   "domestobot @ git+https://github.com/AliGhahraei/domestobot"
 ]
