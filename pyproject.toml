@@ -24,7 +24,7 @@ typer = "^0.16.0"
 pytest = "^8.4.1"
 ruff = "^0.12.5"
 coverage = "^7.10.7"
-basedpyright = "^1.31.4"
+basedpyright = "^1.31.5"
 
 
 [tool.coverage.run]
