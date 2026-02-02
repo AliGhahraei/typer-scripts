@@ -22,7 +22,7 @@ packages = [{include = "typer_scripts"}]
 [tool.poetry.group.dev.dependencies]
 typer = "^0.16.0"
 pytest = "^8.4.2"
-ruff = "^0.14.13"
+ruff = "^0.14.14"
 coverage = "^7.13.2"
 basedpyright = "^1.37.3"
 
