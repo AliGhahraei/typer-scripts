@@ -20,7 +20,7 @@ dbot = 'typer_scripts.main:app'
 packages = [{include = "typer_scripts"}]
 
 [tool.poetry.group.dev.dependencies]
-typer = "^0.16.0"
+typer = "^0.24.1"
 pytest = "^8.4.2"
 ruff = "^0.15.2"
 coverage = "^7.13.4"
