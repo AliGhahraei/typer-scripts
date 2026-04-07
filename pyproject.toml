@@ -21,7 +21,7 @@ packages = [{include = "typer_scripts"}]
 
 [tool.poetry.group.dev.dependencies]
 typer = "^0.16.0"
-pytest = "^8.4.2"
+pytest = "^9.0.3"
 ruff = "^0.15.9"
 coverage = "^7.13.5"
 basedpyright = "^1.39.0"
